@@ -1,0 +1,535 @@
+import React, { useState, useEffect } from 'react';
+import { 
+  View, 
+  Text, 
+  ScrollView, 
+  StyleSheet, 
+  TouchableOpacity,
+  Switch 
+} from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
+import * as SecureStore from 'expo-secure-store';
+import Toast from 'react-native-toast-message';
+import { Colors } from '../constants/colors';
+import { authService } from '../services/supabase';
+import { useCustomAlert } from '../components/CustomAlert';
+
+interface ProfileScreenProps {
+  navigation: any;
+}
+
+interface UserData {
+  nombre_completo: string;
+  email: string;
+  telefono?: string;
+  tipo_usuario: string;
+}
+
+interface ProfileOption {
+  id: string;
+  title: string;
+  subtitle?: string;
+  icon: keyof typeof Ionicons.glyphMap;
+  color: string;
+  action: () => void;
+  showArrow?: boolean;
+  rightComponent?: React.ReactNode;
+}
+
+export const ProfileScreen: React.FC<ProfileScreenProps> = ({ navigation }) => {
+  const [userData, setUserData] = useState<UserData | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [notificationsEnabled, setNotificationsEnabled] = useState(true);
+  const [locationEnabled, setLocationEnabled] = useState(true);
+  const { showAlert, AlertComponent } = useCustomAlert();
+
+  useEffect(() => {
+    loadUserData();
+  }, []);
+
+  const loadUserData = async () => {
+    try {
+      const savedEmail = await SecureStore.getItemAsync('user_email');
+      const userType = await SecureStore.getItemAsync('user_type') || 'dueno';
+      
+      if (savedEmail) {
+        // In development mode, create mock user data
+        if (process.env.NODE_ENV === 'development') {
+          const mockUserData: UserData = {
+            nombre_completo: savedEmail.split('@')[0].replace(/[._]/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
+            email: savedEmail,
+            telefono: '+52 55 1234 5678',
+            tipo_usuario: userType
+          };
+          setUserData(mockUserData);
+        } else {
+          // In production, fetch from Supabase
+          const { user, error } = await authService.getCurrentUser();
+          if (user && !error) {
+            setUserData({
+              nombre_completo: user.user_metadata?.nombre_completo || user.email?.split('@')[0] || 'Usuario',
+              email: user.email || '',
+              telefono: user.user_metadata?.telefono,
+              tipo_usuario: user.user_metadata?.tipo_usuario || userType
+            });
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Error loading user data:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleEditProfile = () => {
+    navigation.navigate('EditProfile');
+  };
+
+  const handleMyPets = () => {
+    // Navigate to MyPets tab
+    navigation.navigate('MisMascotas');
+  };
+
+  const handlePaymentMethods = () => {
+    Toast.show({
+      type: 'info',
+      text1: 'Próximamente',
+      text2: 'La gestión de métodos de pago estará disponible pronto.',
+      position: 'bottom'
+    });
+  };
+
+  const handleNotifications = () => {
+    Toast.show({
+      type: 'info',
+      text1: 'Próximamente',
+      text2: 'La configuración de notificaciones estará disponible pronto.',
+      position: 'bottom'
+    });
+  };
+
+  const handlePrivacy = () => {
+    Toast.show({
+      type: 'info',
+      text1: 'Próximamente',
+      text2: 'La configuración de privacidad estará disponible pronto.',
+      position: 'bottom'
+    });
+  };
+
+  const handleHelp = () => {
+    showAlert({
+      type: 'info',
+      title: 'Centro de Ayuda',
+      message: '¿Necesitas ayuda con Wuauser?',
+      buttons: [
+        { text: 'Cancelar', style: 'cancel', onPress: () => {} },
+        { 
+          text: 'FAQ', 
+          onPress: () => Toast.show({
+            type: 'info',
+            text1: 'FAQ',
+            text2: 'Las preguntas frecuentes estarán disponibles pronto.',
+            position: 'bottom'
+          })
+        },
+        { 
+          text: 'Contactar', 
+          onPress: () => Toast.show({
+            type: 'info',
+            text1: 'Contacto',
+            text2: 'El soporte al cliente estará disponible pronto.',
+            position: 'bottom'
+          })
+        }
+      ]
+    });
+  };
+
+  const handleAbout = () => {
+    showAlert({
+      type: 'info',
+      title: 'Acerca de Wuauser',
+      message: 'Wuauser v1.0.0\n\nConectando veterinarios con dueños de mascotas en México.\n\n© 2024 Wuauser. Todos los derechos reservados.'
+    });
+  };
+
+  const handleLogout = () => {
+    showAlert({
+      type: 'warning',
+      title: 'Cerrar Sesión',
+      message: '¿Estás seguro de que quieres cerrar sesión?',
+      buttons: [
+        {
+          text: 'Cancelar',
+          style: 'cancel',
+          onPress: () => {}
+        },
+        {
+          text: 'Cerrar Sesión',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              // Clear session from SecureStore
+              await SecureStore.deleteItemAsync('user_email');
+              await SecureStore.deleteItemAsync('user_session');
+              await SecureStore.deleteItemAsync('user_type');
+              
+              // Sign out from Supabase
+              await authService.signOut();
+              
+              // Navigate back to login
+              navigation.reset({
+                index: 0,
+                routes: [{ name: 'Login' }],
+              });
+            } catch (error) {
+              console.error('Error logging out:', error);
+              showAlert({
+                type: 'error',
+                title: 'Error',
+                message: 'No se pudo cerrar sesión. Intenta nuevamente.'
+              });
+            }
+          }
+        }
+      ]
+    });
+  };
+
+  const profileOptions: ProfileOption[] = [
+    {
+      id: 'edit_profile',
+      title: 'Editar Perfil',
+      subtitle: 'Actualizar información personal',
+      icon: 'person-outline',
+      color: '#2196F3',
+      action: handleEditProfile,
+      showArrow: true,
+    },
+    {
+      id: 'my_pets',
+      title: 'Mis Mascotas',
+      subtitle: 'Gestionar mascotas registradas',
+      icon: 'paw-outline',
+      color: '#F4B740',
+      action: handleMyPets,
+      showArrow: true,
+    },
+    {
+      id: 'notifications',
+      title: 'Notificaciones',
+      subtitle: 'Configurar alertas y avisos',
+      icon: 'notifications-outline',
+      color: '#FF9800',
+      action: handleNotifications,
+      rightComponent: (
+        <Switch
+          value={notificationsEnabled}
+          onValueChange={setNotificationsEnabled}
+          trackColor={{ false: '#E0E0E0', true: '#FF9800' }}
+          thumbColor={notificationsEnabled ? '#FFF' : '#999'}
+        />
+      ),
+    },
+    {
+      id: 'location',
+      title: 'Ubicación',
+      subtitle: 'Servicios basados en ubicación',
+      icon: 'location-outline',
+      color: '#4CAF50',
+      action: () => {},
+      rightComponent: (
+        <Switch
+          value={locationEnabled}
+          onValueChange={setLocationEnabled}
+          trackColor={{ false: '#E0E0E0', true: '#4CAF50' }}
+          thumbColor={locationEnabled ? '#FFF' : '#999'}
+        />
+      ),
+    },
+    {
+      id: 'payment',
+      title: 'Métodos de Pago',
+      subtitle: 'Tarjetas y métodos de pago',
+      icon: 'card-outline',
+      color: '#9C27B0',
+      action: handlePaymentMethods,
+      showArrow: true,
+    },
+    {
+      id: 'privacy',
+      title: 'Privacidad y Seguridad',
+      subtitle: 'Configuración de privacidad',
+      icon: 'shield-outline',
+      color: '#607D8B',
+      action: handlePrivacy,
+      showArrow: true,
+    },
+    {
+      id: 'help',
+      title: 'Centro de Ayuda',
+      subtitle: 'FAQ y soporte',
+      icon: 'help-circle-outline',
+      color: '#795548',
+      action: handleHelp,
+      showArrow: true,
+    },
+    {
+      id: 'about',
+      title: 'Acerca de',
+      subtitle: 'Información de la app',
+      icon: 'information-circle-outline',
+      color: '#9E9E9E',
+      action: handleAbout,
+      showArrow: true,
+    },
+  ];
+
+  if (isLoading) {
+    return (
+      <View style={styles.loadingContainer}>
+        <Text style={styles.loadingText}>Cargando perfil...</Text>
+      </View>
+    );
+  }
+
+  return (
+    <>
+      <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
+      {/* Header with user info */}
+      <LinearGradient
+        colors={['#F4B740', '#FFF8E7']}
+        style={styles.header}
+      >
+        <View style={styles.userInfo}>
+          <View style={styles.avatar}>
+            <Ionicons name="person" size={40} color="#F4B740" />
+          </View>
+          
+          <View style={styles.userDetails}>
+            <Text style={styles.userName}>{userData?.nombre_completo || 'Usuario'}</Text>
+            <Text style={styles.userEmail}>{userData?.email}</Text>
+            {userData?.telefono && (
+              <Text style={styles.userPhone}>{userData.telefono}</Text>
+            )}
+            <View style={styles.userTypeBadge}>
+              <Text style={styles.userTypeText}>
+                {userData?.tipo_usuario === 'veterinario' ? '🩺 Veterinario' : '🐕 Dueño de Mascota'}
+              </Text>
+            </View>
+          </View>
+        </View>
+      </LinearGradient>
+
+      {/* Profile Options */}
+      <View style={styles.optionsContainer}>
+        {profileOptions.map((option) => (
+          <TouchableOpacity
+            key={option.id}
+            style={styles.optionItem}
+            onPress={option.action}
+          >
+            <View style={styles.optionLeft}>
+              <View style={[styles.optionIcon, { backgroundColor: `${option.color}20` }]}>
+                <Ionicons name={option.icon} size={24} color={option.color} />
+              </View>
+              
+              <View style={styles.optionTexts}>
+                <Text style={styles.optionTitle}>{option.title}</Text>
+                {option.subtitle && (
+                  <Text style={styles.optionSubtitle}>{option.subtitle}</Text>
+                )}
+              </View>
+            </View>
+            
+            <View style={styles.optionRight}>
+              {option.rightComponent || (option.showArrow && (
+                <Ionicons name="chevron-forward" size={20} color="#999" />
+              ))}
+            </View>
+          </TouchableOpacity>
+        ))}
+      </View>
+
+      {/* Logout Button */}
+      <View style={styles.logoutContainer}>
+        <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
+          <Ionicons name="log-out-outline" size={24} color="#F44336" />
+          <Text style={styles.logoutText}>Cerrar Sesión</Text>
+        </TouchableOpacity>
+      </View>
+
+      {/* App Version */}
+      <View style={styles.versionContainer}>
+        <Text style={styles.versionText}>Wuauser v1.0.0</Text>
+      </View>
+
+      {/* Safety Space */}
+      <View style={styles.safetySpace} />
+      </ScrollView>
+      
+      {AlertComponent}
+    </>
+  );
+};
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: '#FFF',
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#FFF',
+  },
+  loadingText: {
+    fontSize: 16,
+    color: Colors.text.secondary,
+  },
+  header: {
+    paddingHorizontal: 20,
+    paddingTop: 60,
+    paddingBottom: 30,
+  },
+  userInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 20,
+  },
+  avatar: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: '#FFF',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 16,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 4,
+  },
+  userDetails: {
+    flex: 1,
+  },
+  userName: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#2A2A2A',
+    marginBottom: 4,
+  },
+  userEmail: {
+    fontSize: 16,
+    color: '#4A4A4A',
+    marginBottom: 2,
+  },
+  userPhone: {
+    fontSize: 14,
+    color: '#666',
+    marginBottom: 8,
+  },
+  userTypeBadge: {
+    alignSelf: 'flex-start',
+    backgroundColor: 'rgba(255, 255, 255, 0.8)',
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  userTypeText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#4A4A4A',
+  },
+  optionsContainer: {
+    paddingHorizontal: 20,
+    paddingTop: 20,
+  },
+  optionItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 16,
+    paddingHorizontal: 16,
+    backgroundColor: '#FFF',
+    borderRadius: 12,
+    marginBottom: 8,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 1,
+    },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 1,
+  },
+  optionLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  optionIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 16,
+  },
+  optionTexts: {
+    flex: 1,
+  },
+  optionTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#2A2A2A',
+    marginBottom: 2,
+  },
+  optionSubtitle: {
+    fontSize: 14,
+    color: '#666',
+  },
+  optionRight: {
+    marginLeft: 12,
+  },
+  logoutContainer: {
+    paddingHorizontal: 20,
+    paddingTop: 20,
+  },
+  logoutButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 16,
+    backgroundColor: '#FFEBEE',
+    borderRadius: 12,
+    gap: 12,
+  },
+  logoutText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#F44336',
+  },
+  versionContainer: {
+    paddingHorizontal: 20,
+    paddingTop: 20,
+    alignItems: 'center',
+  },
+  versionText: {
+    fontSize: 12,
+    color: '#999',
+  },
+  safetySpace: {
+    height: 100,
+  },
+});
+
+export default ProfileScreen;

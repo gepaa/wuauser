@@ -1,0 +1,4 @@
+// Placeholder file for Wuauser logo
+// In a real implementation, this would be the actual logo image file
+// For now, we'll use a base64 encoded small logo or skip the logo in QR
+export const wuauserLogoSmall = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==';
