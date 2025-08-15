@@ -19,6 +19,9 @@ import * as SecureStore from 'expo-secure-store';
 import { colors } from '../constants/colors';
 import { petService, PetData } from '../services/petService';
 import { authService } from '../services/supabase';
+import { CustomAlert, AlertType } from '../components/CustomAlert';
+import Toast from 'react-native-toast-message';
+import QRCode from 'react-native-qrcode-svg';
 
 interface AddPetScreenProps {
   navigation: any;
@@ -52,6 +55,18 @@ export const AddPetScreen: React.FC<AddPetScreenProps> = ({ navigation, route })
   const [hasChip, setHasChip] = useState(false);
   const [selectedVaccines, setSelectedVaccines] = useState<string[]>([]);
   const [generatedQR, setGeneratedQR] = useState<string | null>(null);
+  
+  // Alert state
+  const [alertVisible, setAlertVisible] = useState(false);
+  const [alertConfig, setAlertConfig] = useState<{
+    title: string;
+    message: string;
+    type: AlertType;
+  }>({
+    title: '',
+    message: '',
+    type: 'info'
+  });
 
   const editMode = route?.params?.editMode || false;
   const editPetData = route?.params?.petData;
@@ -82,6 +97,12 @@ export const AddPetScreen: React.FC<AddPetScreenProps> = ({ navigation, route })
 
   const watchedEspecie = watch('especie');
   const watchedNombre = watch('nombre');
+
+  // Custom alert function
+  const showAlert = (config: { title: string; message: string; type: AlertType }) => {
+    setAlertConfig(config);
+    setAlertVisible(true);
+  };
 
   const handlePhotoAction = () => {
     Alert.alert(
@@ -694,7 +715,14 @@ export const AddPetScreen: React.FC<AddPetScreenProps> = ({ navigation, route })
         )}
       </View>
       
-      {AlertComponent}
+      {/* Custom Alert Component */}
+      <CustomAlert
+        isOpen={alertVisible}
+        onClose={() => setAlertVisible(false)}
+        title={alertConfig.title}
+        message={alertConfig.message}
+        type={alertConfig.type}
+      />
     </KeyboardAvoidingView>
   );
 };

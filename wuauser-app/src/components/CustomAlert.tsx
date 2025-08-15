@@ -1,24 +1,14 @@
 import React from 'react';
 import {
   Modal,
-  Box,
+  View,
   Text,
-  Button,
-  HStack,
-  VStack,
-  Center,
-  useColorModeValue,
-  Pressable,
-} from 'native-base';
-// import { BlurView } from 'expo-blur'; // Temporarily disabled
+  TouchableOpacity,
+  StyleSheet,
+  Animated,
+  Dimensions,
+} from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import Animated, {
-  useSharedValue,
-  useAnimatedStyle,
-  withSpring,
-  withTiming,
-  runOnJS,
-} from 'react-native-reanimated';
 import { Colors } from '../constants/colors';
 import * as Haptics from 'expo-haptics';
 
@@ -30,42 +20,12 @@ interface CustomAlertProps {
   title: string;
   message: string;
   type?: AlertType;
-  buttons?: {
+  buttons?: Array<{
     text: string;
-    onPress: () => void;
+    onPress?: () => void;
     style?: 'default' | 'cancel' | 'destructive';
-  }[];
+  }>;
 }
-
-const AnimatedBox = Animated.createAnimatedComponent(Box);
-
-const getIconName = (type: AlertType): keyof typeof Ionicons.glyphMap => {
-  switch (type) {
-    case 'success':
-      return 'checkmark-circle';
-    case 'error':
-      return 'close-circle';
-    case 'warning':
-      return 'warning';
-    case 'info':
-    default:
-      return 'information-circle';
-  }
-};
-
-const getIconColor = (type: AlertType): string => {
-  switch (type) {
-    case 'success':
-      return Colors.success;
-    case 'error':
-      return Colors.error;
-    case 'warning':
-      return Colors.primary;
-    case 'info':
-    default:
-      return Colors.primary;
-  }
-};
 
 export const CustomAlert: React.FC<CustomAlertProps> = ({
   isOpen,
@@ -75,11 +35,12 @@ export const CustomAlert: React.FC<CustomAlertProps> = ({
   type = 'info',
   buttons = [{ text: 'OK', onPress: onClose }],
 }) => {
-  const scale = useSharedValue(0);
-  const opacity = useSharedValue(0);
+  const scaleAnim = React.useRef(new Animated.Value(0)).current;
+  const opacityAnim = React.useRef(new Animated.Value(0)).current;
 
   React.useEffect(() => {
     if (isOpen) {
+      // Trigger haptic feedback
       Haptics.notificationAsync(
         type === 'error' 
           ? Haptics.NotificationFeedbackType.Error
@@ -88,130 +49,118 @@ export const CustomAlert: React.FC<CustomAlertProps> = ({
           : Haptics.NotificationFeedbackType.Warning
       );
       
-      opacity.value = withTiming(1, { duration: 200 });
-      scale.value = withSpring(1, {
-        damping: 15,
-        stiffness: 200,
-      });
+      // Animate in
+      Animated.parallel([
+        Animated.timing(opacityAnim, {
+          toValue: 1,
+          duration: 200,
+          useNativeDriver: true,
+        }),
+        Animated.spring(scaleAnim, {
+          toValue: 1,
+          damping: 15,
+          stiffness: 200,
+          useNativeDriver: true,
+        }),
+      ]).start();
     } else {
-      opacity.value = withTiming(0, { duration: 150 });
-      scale.value = withTiming(0.8, { duration: 150 });
+      // Animate out
+      Animated.parallel([
+        Animated.timing(opacityAnim, {
+          toValue: 0,
+          duration: 150,
+          useNativeDriver: true,
+        }),
+        Animated.timing(scaleAnim, {
+          toValue: 0.8,
+          duration: 150,
+          useNativeDriver: true,
+        }),
+      ]).start();
     }
   }, [isOpen]);
 
-  const animatedStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: scale.value }],
-    opacity: opacity.value,
-  }));
+  const getIcon = () => {
+    const iconProps = {
+      size: 50,
+      color: '#4CAF50',
+      name: 'checkmark-circle' as keyof typeof Ionicons.glyphMap,
+    };
 
-  const handleClose = () => {
-    opacity.value = withTiming(0, { duration: 150 });
-    scale.value = withTiming(0.8, { duration: 150 }, () => {
-      runOnJS(onClose)();
-    });
+    switch (type) {
+      case 'success':
+        return <Ionicons name="checkmark-circle" size={50} color={Colors.success || '#4CAF50'} />;
+      case 'error':
+        return <Ionicons name="close-circle" size={50} color={Colors.error || '#F44336'} />;
+      case 'warning':
+        return <Ionicons name="warning" size={50} color={Colors.primary || '#FF9800'} />;
+      default:
+        return <Ionicons name="information-circle" size={50} color={Colors.primary} />;
+    }
   };
 
+  const handleButtonPress = (button: typeof buttons[0]) => {
+    Haptics.selectionAsync();
+    if (button.onPress) {
+      button.onPress();
+    } else {
+      onClose();
+    }
+  };
+
+  if (!isOpen) return null;
+
   return (
-    <Modal isOpen={isOpen} onClose={handleClose} size="lg">
-      <Modal.Content bg="transparent" shadow="none">
-        <Box
-          bg={`${Colors.white}95`}
-          borderRadius="16"
-          style={{
-            shadowColor: '#000',
-            shadowOffset: { width: 0, height: 8 },
-            shadowOpacity: 0.3,
-            shadowRadius: 12,
-            elevation: 12,
-          }}
+    <Modal
+      transparent
+      visible={isOpen}
+      animationType="none"
+      onRequestClose={onClose}
+    >
+      <View style={styles.overlay}>
+        <Animated.View
+          style={[
+            styles.alertBox,
+            {
+              opacity: opacityAnim,
+              transform: [{ scale: scaleAnim }],
+            },
+          ]}
         >
-          <AnimatedBox
-            style={animatedStyle}
-            bg={Colors.white}
-            borderRadius="16"
-            p="6"
-            mx="4"
-          >
-            <VStack space="4" alignItems="center">
-              <Center
-                w="16"
-                h="16"
-                bg={`${getIconColor(type)}20`}
-                borderRadius="full"
+          <View style={styles.iconContainer}>
+            {getIcon()}
+          </View>
+          
+          <Text style={styles.title}>{title}</Text>
+          <Text style={styles.message}>{message}</Text>
+          
+          <View style={styles.buttonContainer}>
+            {buttons.map((button, index) => (
+              <TouchableOpacity
+                key={index}
+                style={[
+                  styles.button,
+                  button.style === 'cancel' && styles.cancelButton,
+                  button.style === 'destructive' && styles.destructiveButton,
+                  buttons.length > 1 && { flex: 1 },
+                ]}
+                onPress={() => handleButtonPress(button)}
+                activeOpacity={0.8}
               >
-                <Ionicons
-                  name={getIconName(type)}
-                  size={32}
-                  color={getIconColor(type)}
-                />
-              </Center>
-
-              <VStack space="2" alignItems="center">
                 <Text
-                  fontSize="lg"
-                  fontWeight="bold"
-                  color={Colors.text.primary}
-                  textAlign="center"
+                  style={[
+                    styles.buttonText,
+                    button.style === 'cancel' && styles.cancelButtonText,
+                    button.style === 'destructive' && styles.destructiveButtonText,
+                  ]}
                 >
-                  {title}
+                  {button.text}
                 </Text>
-                
-                <Text
-                  fontSize="md"
-                  color={Colors.text.secondary}
-                  textAlign="center"
-                  lineHeight="md"
-                >
-                  {message}
-                </Text>
-              </VStack>
-
-              <HStack space="3" w="full">
-                {buttons.map((button, index) => (
-                  <Button
-                    key={index}
-                    flex={1}
-                    variant={button.style === 'cancel' ? 'outline' : 'solid'}
-                    bg={
-                      button.style === 'destructive'
-                        ? Colors.error
-                        : button.style === 'cancel'
-                        ? 'transparent'
-                        : Colors.primary
-                    }
-                    borderColor={
-                      button.style === 'cancel' ? Colors.border : 'transparent'
-                    }
-                    _text={{
-                      color:
-                        button.style === 'cancel'
-                          ? Colors.text.secondary
-                          : Colors.white,
-                      fontWeight: 'medium',
-                    }}
-                    _pressed={{
-                      bg:
-                        button.style === 'destructive'
-                          ? `${Colors.error}90`
-                          : button.style === 'cancel'
-                          ? `${Colors.border}40`
-                          : `${Colors.primary}90`,
-                    }}
-                    borderRadius="12"
-                    h="12"
-                    onPress={() => {
-                      Haptics.selectionAsync();
-                      button.onPress();
-                    }}
-                  >
-                    {button.text}
-                  </Button>
-                ))}
-              </HStack>
-            </VStack>
-          </AnimatedBox>
-        </Box>
-      </Modal.Content>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </Animated.View>
+      </View>
     </Modal>
   );
 };
@@ -254,3 +203,86 @@ export const useCustomAlert = () => {
     AlertComponent,
   };
 };
+
+const styles = StyleSheet.create({
+  overlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  alertBox: {
+    backgroundColor: 'white',
+    borderRadius: 20,
+    padding: 24,
+    width: '85%',
+    maxWidth: 400,
+    alignItems: 'center',
+    elevation: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.3,
+    shadowRadius: 12,
+  },
+  iconContainer: {
+    marginBottom: 16,
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: 'rgba(244, 183, 64, 0.1)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  title: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    marginBottom: 12,
+    textAlign: 'center',
+    color: '#333',
+  },
+  message: {
+    fontSize: 16,
+    marginBottom: 24,
+    textAlign: 'center',
+    color: '#666',
+    lineHeight: 22,
+  },
+  buttonContainer: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    width: '100%',
+    gap: 12,
+  },
+  button: {
+    backgroundColor: Colors.primary,
+    paddingHorizontal: 30,
+    paddingVertical: 12,
+    borderRadius: 12,
+    minWidth: 100,
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
+  },
+  cancelButton: {
+    backgroundColor: '#E0E0E0',
+    elevation: 0,
+    shadowOpacity: 0,
+  },
+  destructiveButton: {
+    backgroundColor: Colors.error || '#F44336',
+  },
+  buttonText: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: '600',
+    textAlign: 'center',
+  },
+  cancelButtonText: {
+    color: '#333',
+  },
+  destructiveButtonText: {
+    color: 'white',
+  },
+});
