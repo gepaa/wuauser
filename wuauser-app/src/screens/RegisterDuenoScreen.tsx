@@ -160,53 +160,36 @@ export const RegisterDuenoScreen: React.FC<RegisterDuenoScreenProps> = ({
     try {
       const { nombre, apellido, email, telefono, password } = data;
       
-      const datosPersonales = {
-        nombre_completo: `${nombre} ${apellido}`,
-        telefono: telefono,
-      };
-      
-      const { data: result, error } = await authService.registrarDueno(
+      // Registrar en Supabase
+      const { data: authData, error } = await authService.signUp(
         email,
         password,
-        datosPersonales
+        {
+          tipo_usuario: 'dueno',
+          nombre_completo: `${nombre} ${apellido}`,
+          telefono: telefono
+        }
       );
       
       if (error) {
-        throw error;
+        Alert.alert('Error', error.message);
+        return;
       }
       
-      if (result?.user) {
-        Alert.alert(
-          '¡Registro Exitoso!',
-          'Tu cuenta ha sido creada correctamente. Revisa tu email para confirmar tu cuenta.',
-          [
-            {
-              text: 'Continuar',
-              onPress: () => {
-                if (onSuccess) {
-                  onSuccess();
-                } else {
-                  // Navigate to HomeScreen (main app)
-                  navigation.reset({
-                    index: 0,
-                    routes: [{ name: 'HomeScreen' }],
-                  });
-                }
-              }
-            }
-          ]
-        );
-      }
+      // Éxito - navegar a home
+      Alert.alert(
+        'Registro Exitoso',
+        'Tu cuenta ha sido creada. Revisa tu email para confirmar.',
+        [
+          {
+            text: 'OK',
+            onPress: () => navigation.navigate('Login')
+          }
+        ]
+      );
     } catch (error: any) {
       console.error('Error en registro:', error);
-      
-      let errorMessage = 'No se pudo crear la cuenta. Intenta nuevamente.';
-      
-      if (error.message) {
-        errorMessage = error.message;
-      }
-      
-      Alert.alert('Error en Registro', errorMessage);
+      Alert.alert('Error', 'No se pudo completar el registro');
     } finally {
       setIsLoading(false);
     }

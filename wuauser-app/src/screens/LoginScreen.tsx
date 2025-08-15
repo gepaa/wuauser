@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, ScrollView, StyleSheet, KeyboardAvoidingView, Platform, Modal } from 'react-native';
+import { View, Text, ScrollView, StyleSheet, KeyboardAvoidingView, Platform, Modal, Alert } from 'react-native';
 import { TextInput, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -8,7 +8,7 @@ import * as SecureStore from 'expo-secure-store';
 import Toast from 'react-native-toast-message';
 import { WuauserLogo } from '../components/WuauserLogo';
 import { colors } from '../constants/colors';
-import { authService } from '../services/supabase';
+import { authService, dbService } from '../services/supabase';
 import { useCustomAlert } from '../components/CustomAlert';
 
 interface LoginScreenProps {
@@ -152,38 +152,42 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
   };
 
   const handleLogin = async (data: FormData) => {
+    if (!data.email || !data.password) {
+      Alert.alert('Error', 'Por favor ingresa email y contraseña');
+      return;
+    }
+    
     setIsLoading(true);
     
     try {
-      const { email, password } = data;
-      
-      const { data: authData, error } = await authService.signIn(email, password);
+      // Intentar login
+      const { data: authData, error } = await authService.signIn(data.email, data.password);
       
       if (error) {
-        throw error;
+        Alert.alert('Error', 'Email o contraseña incorrectos');
+        return;
       }
       
-      if (authData?.user && authData?.session) {
-        // Save session to SecureStore
-        await saveSession(email, authData.session);
+      if (authData?.user) {
+        // Obtener perfil del usuario
+        const { data: profile } = await dbService.getProfile(authData.user.id);
         
-        // Navigate directly without alert
-        handleNavigationAfterLogin(authData.user);
+        // Navegar según tipo de usuario
+        if (profile?.tipo_usuario === 'veterinario') {
+          navigation.reset({
+            index: 0,
+            routes: [{ name: 'VetDashboard' }],
+          });
+        } else {
+          navigation.reset({
+            index: 0,
+            routes: [{ name: 'MainTabs' }],
+          });
+        }
       }
     } catch (error: any) {
       console.error('Error en login:', error);
-      
-      let errorMessage = 'No se pudo iniciar sesión. Verifica tus credenciales.';
-      
-      if (error.message) {
-        errorMessage = error.message;
-      }
-      
-      showAlert({
-        type: 'error',
-        title: 'Error de Inicio de Sesión',
-        message: errorMessage
-      });
+      Alert.alert('Error', 'No se pudo iniciar sesión');
     } finally {
       setIsLoading(false);
     }
