@@ -41,68 +41,29 @@ export const supabase = isDevelopment
       }
     );
 
-// Connection monitoring and automatic reconnection
-class ConnectionManager {
-  private isOnline = true;
-  private reconnectAttempts = 0;
-  private maxReconnectAttempts = 5;
-  private reconnectDelay = 1000;
-
-  constructor() {
-    if (!isDevelopment) {
-      this.setupConnectionMonitoring();
+// Simple connection status helper
+export const connectionService = {
+  isOnline: true,
+  
+  checkConnection: async () => {
+    if (isDevelopment || !supabase) {
+      console.log('🎭 Mock connection check');
+      return true;
     }
-  }
-
-  private setupConnectionMonitoring() {
-    if (!supabase) return;
     
-    supabase.realtime.onOpen(() => {
-      console.log('Supabase: Conexión establecida');
-      this.isOnline = true;
-      this.reconnectAttempts = 0;
-    });
-
-    supabase.realtime.onClose(() => {
-      console.log('Supabase: Conexión cerrada');
-      this.isOnline = false;
-      this.attemptReconnection();
-    });
-
-    supabase.realtime.onError((error) => {
-      console.error('Supabase: Error de conexión', error);
-      this.isOnline = false;
-    });
-  }
-
-  private async attemptReconnection() {
-    if (!supabase || this.reconnectAttempts >= this.maxReconnectAttempts) {
-      console.error('Supabase: Máximo de intentos de reconexión alcanzado');
-      return;
+    try {
+      const { error } = await supabase.from('_health_check').select('count').limit(1);
+      connectionService.isOnline = !error;
+      return !error;
+    } catch (error) {
+      console.warn('Supabase: Connection check failed', error);
+      connectionService.isOnline = false;
+      return false;
     }
-
-    this.reconnectAttempts++;
-    const delay = this.reconnectDelay * Math.pow(2, this.reconnectAttempts - 1);
-    
-    console.log(`Supabase: Intentando reconectar (${this.reconnectAttempts}/${this.maxReconnectAttempts}) en ${delay}ms`);
-    
-    setTimeout(() => {
-      try {
-        if (supabase) {
-          supabase.realtime.connect();
-        }
-      } catch (error) {
-        console.error('Supabase: Error al reconectar', error);
-      }
-    }, delay);
-  }
-
-  getConnectionStatus() {
-    return this.isOnline;
-  }
-}
-
-const connectionManager = new ConnectionManager();
+  },
+  
+  getStatus: () => connectionService.isOnline,
+};
 
 // Enhanced error handling helper
 const handleSupabaseError = (error: any, context: string) => {
@@ -357,7 +318,16 @@ export const authService = {
   },
 
   async signOut() {
+    if (isDevelopment) {
+      console.log('🎭 Mock signOut');
+      return { error: null };
+    }
+    
     try {
+      if (!supabase) {
+        throw new Error('Supabase no está configurado');
+      }
+      
       const { error } = await supabase.auth.signOut();
       
       if (error) {
@@ -372,7 +342,16 @@ export const authService = {
   },
 
   async getCurrentUser() {
+    if (isDevelopment) {
+      console.log('🎭 Mock getCurrentUser');
+      return { user: null, error: null };
+    }
+    
     try {
+      if (!supabase) {
+        throw new Error('Supabase no está configurado');
+      }
+      
       const { data: { user }, error } = await supabase.auth.getUser();
       
       if (error) {
@@ -387,7 +366,16 @@ export const authService = {
   },
 
   async resetPassword(email: string) {
+    if (isDevelopment) {
+      console.log('🎭 Mock resetPassword:', email);
+      return { data: null, error: null };
+    }
+    
     try {
+      if (!supabase) {
+        throw new Error('Supabase no está configurado');
+      }
+      
       const { data, error } = await supabase.auth.resetPasswordForEmail(email, {
         redirectTo: `${config.app.name}://reset-password`,
       });
@@ -404,18 +392,32 @@ export const authService = {
   },
 
   onAuthStateChange(callback: (event: string, session: any) => void) {
+    if (isDevelopment || !supabase) {
+      console.log('🎭 Mock onAuthStateChange');
+      return { data: { subscription: null }, error: null };
+    }
+    
     return supabase.auth.onAuthStateChange(callback);
   },
 
   getConnectionStatus() {
-    return connectionManager.getConnectionStatus();
+    return connectionService.getStatus();
   },
 };
 
 // Database helper functions
 export const dbService = {
   async getProfile(userId: string) {
+    if (isDevelopment) {
+      console.log('🎭 Mock getProfile:', userId);
+      return { data: null, error: null };
+    }
+    
     try {
+      if (!supabase) {
+        throw new Error('Supabase no está configurado');
+      }
+      
       const { data, error } = await supabase
         .from('profiles')
         .select('*')
@@ -434,7 +436,16 @@ export const dbService = {
   },
 
   async updateProfile(userId: string, updates: any) {
+    if (isDevelopment) {
+      console.log('🎭 Mock updateProfile:', userId, updates);
+      return { data: null, error: null };
+    }
+    
     try {
+      if (!supabase) {
+        throw new Error('Supabase no está configurado');
+      }
+      
       const { data, error } = await supabase
         .from('profiles')
         .update(updates)
@@ -454,7 +465,16 @@ export const dbService = {
   },
 
   async getVeterinarians(location?: { latitude: number; longitude: number }) {
+    if (isDevelopment) {
+      console.log('🎭 Mock getVeterinarians:', location);
+      return { data: [], error: null };
+    }
+    
     try {
+      if (!supabase) {
+        throw new Error('Supabase no está configurado');
+      }
+      
       let query = supabase
         .from('profiles')
         .select(`
@@ -488,7 +508,16 @@ export const dbService = {
   },
 
   async getUserPets(userId: string) {
+    if (isDevelopment) {
+      console.log('🎭 Mock getUserPets:', userId);
+      return { data: [], error: null };
+    }
+    
     try {
+      if (!supabase) {
+        throw new Error('Supabase no está configurado');
+      }
+      
       const { data, error } = await supabase
         .from('pets')
         .select(`
@@ -510,7 +539,16 @@ export const dbService = {
   },
 
   async createAppointment(appointmentData: any) {
+    if (isDevelopment) {
+      console.log('🎭 Mock createAppointment:', appointmentData);
+      return { data: null, error: null };
+    }
+    
     try {
+      if (!supabase) {
+        throw new Error('Supabase no está configurado');
+      }
+      
       const { data, error } = await supabase
         .from('appointments')
         .insert(appointmentData)
@@ -537,19 +575,26 @@ export const realtimeService = {
       return { unsubscribe: () => console.log('🎭 Mock unsubscribe appointments') };
     }
     
-    return supabase
-      .channel('appointments')
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'appointments',
-          filter: `owner_id=eq.${userId}`,
-        },
-        callback
-      )
-      .subscribe();
+    try {
+      return supabase
+        .channel('appointments')
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'appointments',
+            filter: `owner_id=eq.${userId}`,
+          },
+          callback
+        )
+        .subscribe((status) => {
+          console.log('Supabase appointments channel status:', status);
+        });
+    } catch (error) {
+      console.error('Error subscribing to appointments:', error);
+      return { unsubscribe: () => {} };
+    }
   },
 
   subscribeToMessages(userId: string, callback: (payload: any) => void) {
@@ -558,32 +603,44 @@ export const realtimeService = {
       return { unsubscribe: () => console.log('🎭 Mock unsubscribe messages') };
     }
     
-    return supabase
-      .channel('messages')
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'messages',
-          filter: `recipient_id=eq.${userId}`,
-        },
-        callback
-      )
-      .subscribe();
+    try {
+      return supabase
+        .channel('messages')
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'messages',
+            filter: `recipient_id=eq.${userId}`,
+          },
+          callback
+        )
+        .subscribe((status) => {
+          console.log('Supabase messages channel status:', status);
+        });
+    } catch (error) {
+      console.error('Error subscribing to messages:', error);
+      return { unsubscribe: () => {} };
+    }
   },
 
   unsubscribe(channel: any) {
     if (isDevelopment || !supabase) {
       console.log('🎭 Mock unsubscribe channel');
-      if (channel?.unsubscribe) {
-        channel.unsubscribe();
-      }
       return;
     }
     
-    return supabase.removeChannel(channel);
+    try {
+      if (channel?.unsubscribe) {
+        channel.unsubscribe();
+      } else if (supabase) {
+        supabase.removeChannel(channel);
+      }
+    } catch (error) {
+      console.error('Error unsubscribing from channel:', error);
+    }
   },
 };
 
-export { connectionManager };
+export { connectionService };
