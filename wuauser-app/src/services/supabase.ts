@@ -65,14 +65,16 @@ export const connectionService = {
   getStatus: () => connectionService.isOnline,
 };
 
-// Enhanced error handling helper
+// Enhanced error handling helper with Mexican Spanish messages
 const handleSupabaseError = (error: any, context: string) => {
   console.error(`Supabase Error [${context}]:`, error);
   
-  if (error?.message?.includes('Network')) {
+  // Network errors
+  if (error?.message?.includes('Network') || error?.code === 'NETWORK_ERROR') {
     return new Error('Error de conexión. Verifica tu internet e intenta nuevamente.');
   }
   
+  // Authentication errors
   if (error?.message?.includes('Invalid login')) {
     return new Error('Email o contraseña incorrectos.');
   }
@@ -81,7 +83,85 @@ const handleSupabaseError = (error: any, context: string) => {
     return new Error('Por favor, confirma tu email antes de iniciar sesión.');
   }
   
-  return error;
+  if (error?.message?.includes('User already registered')) {
+    return new Error('Este email ya está registrado. Intenta iniciar sesión.');
+  }
+  
+  if (error?.message?.includes('Password should be at least')) {
+    return new Error('La contraseña debe tener al menos 6 caracteres.');
+  }
+  
+  if (error?.message?.includes('Invalid email')) {
+    return new Error('El formato del email no es válido.');
+  }
+  
+  // Database errors
+  if (error?.code === '23505' || error?.message?.includes('duplicate key')) {
+    return new Error('Este email ya está registrado en el sistema.');
+  }
+  
+  if (error?.code === '23502' || error?.message?.includes('null value')) {
+    return new Error('Faltan datos requeridos. Verifica que todos los campos estén completos.');
+  }
+  
+  if (error?.code === '23503' || error?.message?.includes('foreign key')) {
+    return new Error('Error de referencia en la base de datos. Contacta soporte.');
+  }
+  
+  if (error?.code === '42P01' || error?.message?.includes('does not exist')) {
+    return new Error('Error de configuración de la base de datos. Contacta soporte.');
+  }
+  
+  // RLS (Row Level Security) errors
+  if (error?.code === '42501' || error?.message?.includes('permission denied')) {
+    return new Error('No tienes permisos para realizar esta acción.');
+  }
+  
+  // Generic database error
+  if (error?.message?.includes('Database error')) {
+    return new Error('Error en la base de datos. Intenta nuevamente en unos momentos.');
+  }
+  
+  // Return original error if no specific handling
+  return error instanceof Error ? error : new Error(error?.message || 'Error desconocido');
+};
+
+// Input validation helpers
+const validateEmail = (email: string): boolean => {
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  return emailRegex.test(email);
+};
+
+const validatePassword = (password: string): string | null => {
+  if (!password || password.length < 6) {
+    return 'La contraseña debe tener al menos 6 caracteres';
+  }
+  return null;
+};
+
+const validateDuenoData = (datos: any): string | null => {
+  if (!datos.nombre_completo?.trim()) {
+    return 'El nombre completo es requerido';
+  }
+  // SIMPLIFICADO: Solo validar nombre_completo para registro básico
+  // direccion y ciudad son opcionales
+  return null;
+};
+
+const validateVeterinarioData = (datos: any): string | null => {
+  if (!datos.nombre_completo?.trim()) {
+    return 'El nombre completo es requerido';
+  }
+  if (!datos.cedula_profesional?.trim()) {
+    return 'La cédula profesional es requerida';
+  }
+  if (!datos.especialidad?.trim()) {
+    return 'La especialidad es requerida';
+  }
+  if (!datos.nombre_clinica?.trim()) {
+    return 'El nombre de la clínica es requerido';
+  }
+  return null;
 };
 
 // Mock data for development
@@ -93,6 +173,72 @@ const createMockUser = (email: string, metadata: any) => ({
 });
 
 export const authService = {
+  // FUNCIÓN DE PRUEBA MÍNIMA - Solo para debug
+  async testMinimalRegistration(email: string, password: string) {
+    console.log('🧪 PRUEBA MÍNIMA - Registro con campos básicos');
+    console.log('🧪 Email:', email);
+    console.log('🧪 isDevelopment:', isDevelopment);
+    
+    if (isDevelopment) {
+      console.log('🎭 Mock test registration');
+      return { data: { user: createMockUser(email, {}) }, error: null };
+    }
+    
+    try {
+      if (!supabase) {
+        throw new Error('Supabase no está configurado');
+      }
+      
+      // Step 1: Auth only
+      console.log('🧪 Paso 1: Auth user...');
+      const { data: authData, error: authError } = await supabase.auth.signUp({
+        email: email.toLowerCase().trim(),
+        password,
+      });
+      
+      if (authError) {
+        console.error('🚨 Auth error:', authError);
+        throw authError;
+      }
+      
+      if (!authData.user) {
+        throw new Error('No auth user created');
+      }
+      
+      // Step 2: MINIMAL profile insert - ONLY required fields
+      console.log('🧪 Paso 2: Insertar perfil MÍNIMO...');
+      const minimalData = {
+        id: authData.user.id,
+        email: authData.user.email || email.toLowerCase().trim(),
+        tipo_usuario: 'dueno' as const,
+        nombre_completo: 'Test User Minimal',
+      };
+      
+      console.log('🧪 Datos mínimos a insertar:', minimalData);
+      console.log('🧪 Campos exactos:', Object.keys(minimalData));
+      
+      const { data: profileData, error: profileError } = await supabase
+        .from('usuarios')
+        .insert(minimalData)
+        .select()
+        .single();
+      
+      console.log('🧪 Profile insert result:', { profileData, profileError });
+      
+      if (profileError) {
+        console.error('🚨 Profile error:', profileError);
+        throw profileError;
+      }
+      
+      console.log('✅ ÉXITO - Registro mínimo funcionó');
+      return { data: { user: authData.user, profile: profileData }, error: null };
+      
+    } catch (error) {
+      console.error('🚨 Test registration failed:', error);
+      return { data: null, error };
+    }
+  },
+
   async signUp(email: string, password: string, metadata: any) {
     if (isDevelopment) {
       // Mock implementation for development
@@ -132,6 +278,10 @@ export const authService = {
   },
 
   async registrarDueno(email: string, password: string, datosPersonales: any) {
+    console.log('🔍 DEBUG registrarDueno - PATRÓN OFICIAL SUPABASE');
+    console.log('🔍 DEBUG registrarDueno - email:', email);
+    console.log('🔍 DEBUG registrarDueno - datosPersonales:', datosPersonales);
+    
     if (isDevelopment) {
       // Mock implementation for development
       console.log('🎭 Mock registrarDueno:', { email, datosPersonales });
@@ -146,52 +296,81 @@ export const authService = {
     }
     
     try {
+      // Input validation
+      if (!validateEmail(email)) {
+        throw new Error('El formato del email no es válido');
+      }
+      
+      const passwordError = validatePassword(password);
+      if (passwordError) {
+        throw new Error(passwordError);
+      }
+      
+      const dataError = validateDuenoData(datosPersonales);
+      if (dataError) {
+        throw new Error(dataError);
+      }
+      
       if (!supabase) {
+        console.error('🚨 CRITICAL: supabase client is null');
         throw new Error('Supabase no está configurado');
       }
       
-      const { data, error } = await supabase.auth.signUp({
-        email,
+      console.log('🔍 DEBUG: Usando patrón oficial de Supabase con trigger automático...');
+      
+      // PATRÓN OFICIAL: Solo signUp con metadata - el trigger crea el profile automáticamente
+      const { data: authData, error: authError } = await supabase.auth.signUp({
+        email: email.toLowerCase().trim(),
         password,
         options: {
           data: {
-            ...datosPersonales,
             tipo_usuario: 'dueno',
+            first_name: datosPersonales.nombre_completo?.trim(),
+            telefono: datosPersonales.telefono?.trim(),
+            // Campos opcionales en metadata
+            direccion: datosPersonales.direccion?.trim(),
+            codigo_postal: datosPersonales.codigo_postal?.trim(), 
+            ciudad: datosPersonales.ciudad?.trim(),
           },
         },
       });
       
-      if (error) {
-        throw handleSupabaseError(error, 'registrarDueno');
+      console.log('🔍 DEBUG: Auth response - data:', authData);
+      console.log('🔍 DEBUG: Auth response - error:', authError);
+      
+      if (authError) {
+        console.error('🚨 ERROR en Auth signUp:', authError);
+        throw handleSupabaseError(authError, 'registro de autenticación');
       }
       
-      if (data.user) {
-        const { error: profileError } = await supabase
-          .from('usuarios')
-          .insert({
-            id: data.user.id,
-            email: data.user.email,
-            tipo_usuario: 'dueno',
-            nombre_completo: datosPersonales.nombre_completo,
-            telefono: datosPersonales.telefono,
-            direccion: datosPersonales.direccion,
-            codigo_postal: datosPersonales.codigo_postal,
-            ciudad: datosPersonales.ciudad,
-          });
-        
-        if (profileError) {
-          throw handleSupabaseError(profileError, 'crear perfil dueño');
-        }
+      if (!authData.user) {
+        throw new Error('No se pudo crear el usuario de autenticación');
       }
       
-      return { data, error: null };
+      console.log('✅ DEBUG: Usuario registrado exitosamente con patrón oficial');
+      console.log('✅ DEBUG: El perfil se crea automáticamente via trigger');
+      
+      // El profile se crea automáticamente via trigger, no necesitamos insertar manualmente
+      return { 
+        data: {
+          user: authData.user,
+          session: authData.session
+        }, 
+        error: null 
+      };
+      
     } catch (error) {
-      console.error('AuthService: Error en registrarDueno', error);
-      return { data: null, error };
+      console.error('🚨 AuthService: Error en registrarDueno', error);
+      const errorMessage = error instanceof Error ? error.message : 'Error desconocido en el registro';
+      return { data: null, error: new Error(errorMessage) };
     }
   },
 
   async registrarVeterinario(email: string, password: string, datosVeterinario: any) {
+    console.log('🔍 DEBUG registrarVeterinario - isDevelopment:', isDevelopment);
+    console.log('🔍 DEBUG registrarVeterinario - email:', email);
+    console.log('🔍 DEBUG registrarVeterinario - datosVeterinario:', datosVeterinario);
+    
     if (isDevelopment) {
       // Mock implementation for development
       console.log('🎭 Mock registrarVeterinario:', { email, datosVeterinario });
@@ -206,52 +385,122 @@ export const authService = {
     }
     
     try {
+      // Input validation
+      if (!validateEmail(email)) {
+        throw new Error('El formato del email no es válido');
+      }
+      
+      const passwordError = validatePassword(password);
+      if (passwordError) {
+        throw new Error(passwordError);
+      }
+      
+      const dataError = validateVeterinarioData(datosVeterinario);
+      if (dataError) {
+        throw new Error(dataError);
+      }
+      
       if (!supabase) {
+        console.error('🚨 CRITICAL: supabase client is null');
         throw new Error('Supabase no está configurado');
       }
-      const { data, error } = await supabase.auth.signUp({
-        email,
+      
+      console.log('🔍 DEBUG: Iniciando transacción de registro veterinario...');
+      
+      // Step 1: Create auth user
+      console.log('🔍 DEBUG: Paso 1 - Creando usuario veterinario en Auth...');
+      const { data: authData, error: authError } = await supabase.auth.signUp({
+        email: email.toLowerCase().trim(),
         password,
         options: {
           data: {
-            ...datosVeterinario,
             tipo_usuario: 'veterinario',
+            nombre_completo: datosVeterinario.nombre_completo?.trim(),
+            cedula_profesional: datosVeterinario.cedula_profesional?.trim(),
           },
         },
       });
       
-      if (error) {
-        throw handleSupabaseError(error, 'registrarVeterinario');
+      console.log('🔍 DEBUG: Auth response - data:', authData);
+      console.log('🔍 DEBUG: Auth response - error:', authError);
+      
+      if (authError) {
+        console.error('🚨 ERROR en Auth signUp:', authError);
+        throw handleSupabaseError(authError, 'registro de autenticación veterinario');
       }
       
-      if (data.user) {
-        const { error: profileError } = await supabase
-          .from('usuarios')
-          .insert({
-            id: data.user.id,
-            email: data.user.email,
-            tipo_usuario: 'veterinario',
-            nombre_completo: datosVeterinario.nombre_completo,
-            telefono: datosVeterinario.telefono,
-            cedula_profesional: datosVeterinario.cedula_profesional,
-            especialidad: datosVeterinario.especialidad,
-            nombre_clinica: datosVeterinario.nombre_clinica,
-            direccion_clinica: datosVeterinario.direccion_clinica,
-            telefono_clinica: datosVeterinario.telefono_clinica,
-            servicios: datosVeterinario.servicios,
-            horario_atencion: datosVeterinario.horario_atencion,
-            verificado: false,
-          });
+      if (!authData.user) {
+        throw new Error('No se pudo crear el usuario veterinario de autenticación');
+      }
+      
+      // Step 2: Create profile in usuarios table
+      console.log('🔍 DEBUG: Paso 2 - Creando perfil veterinario en tabla usuarios...');
+      console.log('🔍 DEBUG: User ID:', authData.user.id);
+      
+      // VERSIÓN MÍNIMA: Solo campos que DEFINITIVAMENTE existen en Supabase
+      const profileData = {
+        id: authData.user.id,
+        email: authData.user.email || email.toLowerCase().trim(),
+        tipo_usuario: 'veterinario' as const,
+        nombre_completo: datosVeterinario.nombre_completo?.trim(),
+        cedula_profesional: datosVeterinario.cedula_profesional?.trim(),
+        especialidad: datosVeterinario.especialidad?.trim(),
+        nombre_clinica: datosVeterinario.nombre_clinica?.trim(),
+        verificado: false, // Always false for new veterinarians
+        // Campos opcionales - solo si tienen valor
+        ...(datosVeterinario.telefono?.trim() && { telefono: datosVeterinario.telefono.trim() }),
+        ...(datosVeterinario.direccion_clinica?.trim() && { direccion_clinica: datosVeterinario.direccion_clinica.trim() }),
+        ...(datosVeterinario.telefono_clinica?.trim() && { telefono_clinica: datosVeterinario.telefono_clinica.trim() }),
+        ...(datosVeterinario.servicios && { servicios: datosVeterinario.servicios }),
+        ...(datosVeterinario.horario_atencion && { horario_atencion: datosVeterinario.horario_atencion }),
+      };
+      
+      console.log('🔍 DEBUG: Datos del perfil veterinario a insertar:', profileData);
+      console.log('📋 DEBUG: Campos exactos a insertar:', Object.keys(profileData));
+      
+      const { data: profileInsertData, error: profileError } = await supabase
+        .from('usuarios')
+        .insert(profileData)
+        .select()
+        .single();
+      
+      console.log('🔍 DEBUG: Profile insert response - data:', profileInsertData);
+      console.log('🔍 DEBUG: Profile insert response - error:', profileError);
+      
+      if (profileError) {
+        console.error('🚨 ERROR al crear perfil veterinario:', profileError);
         
-        if (profileError) {
-          throw handleSupabaseError(profileError, 'crear perfil veterinario');
+        // Rollback: Delete the auth user if profile creation failed
+        console.log('🔄 ROLLBACK: Eliminando usuario veterinario de Auth...');
+        try {
+          if (authData.session) {
+            await supabase.auth.signOut();
+          }
+          // Note: We can't delete the auth user programmatically
+          // The user will need to be cleaned up manually or via admin
+        } catch (rollbackError) {
+          console.error('🚨 Error en rollback:', rollbackError);
         }
+        
+        throw handleSupabaseError(profileError, 'crear perfil veterinario');
       }
       
-      return { data, error: null };
+      console.log('✅ DEBUG: Usuario veterinario registrado exitosamente');
+      console.log('✅ DEBUG: Profile veterinario creado:', profileInsertData);
+      
+      return { 
+        data: {
+          user: authData.user,
+          session: authData.session,
+          profile: profileInsertData
+        }, 
+        error: null 
+      };
+      
     } catch (error) {
-      console.error('AuthService: Error en registrarVeterinario', error);
-      return { data: null, error };
+      console.error('🚨 AuthService: Error en registrarVeterinario', error);
+      const errorMessage = error instanceof Error ? error.message : 'Error desconocido en el registro de veterinario';
+      return { data: null, error: new Error(errorMessage) };
     }
   },
 
