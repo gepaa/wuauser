@@ -332,6 +332,7 @@ export const authService = {
             codigo_postal: datosPersonales.codigo_postal?.trim(), 
             ciudad: datosPersonales.ciudad?.trim(),
           },
+          emailRedirectTo: 'wuauser://confirm-email',
         },
       });
       
@@ -418,6 +419,7 @@ export const authService = {
             nombre_completo: datosVeterinario.nombre_completo?.trim(),
             cedula_profesional: datosVeterinario.cedula_profesional?.trim(),
           },
+          emailRedirectTo: 'wuauser://confirm-email',
         },
       });
       
@@ -626,7 +628,7 @@ export const authService = {
       }
       
       const { data, error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${config.app.name}://reset-password`,
+        redirectTo: 'wuauser://reset-password',
       });
       
       if (error) {
@@ -668,7 +670,7 @@ export const dbService = {
       }
       
       const { data, error } = await supabase
-        .from('profiles')
+        .from('usuarios')
         .select('*')
         .eq('id', userId)
         .single();
@@ -696,7 +698,7 @@ export const dbService = {
       }
       
       const { data, error } = await supabase
-        .from('profiles')
+        .from('usuarios')
         .update(updates)
         .eq('id', userId)
         .select()
@@ -725,13 +727,12 @@ export const dbService = {
       }
       
       let query = supabase
-        .from('profiles')
+        .from('usuarios')
         .select(`
-          *,
-          veterinarian_profiles (*)
+          *
         `)
-        .eq('user_type', 'vet')
-        .eq('is_active', true);
+        .eq('tipo_usuario', 'veterinario')
+        .eq('verificado', true);
 
       // If location provided, add proximity filter
       if (location) {

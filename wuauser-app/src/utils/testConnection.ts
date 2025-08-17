@@ -10,7 +10,7 @@ export const testSupabaseConnection = async () => {
     }
 
     // Test 1: Verificar conexión básica
-    const { data, error } = await supabase.from('profiles').select('count', { count: 'exact', head: true });
+    const { data, error } = await supabase.from('usuarios').select('count', { count: 'exact', head: true });
     
     if (error) {
       console.error('❌ Error de conexión:', error.message);
@@ -32,7 +32,7 @@ export const testSupabaseConnection = async () => {
     }
 
     // Test 3: Verificar tablas existentes
-    const tables = ['profiles', 'veterinarios', 'mascotas', 'citas'];
+    const tables = ['usuarios', 'veterinarios', 'mascotas', 'citas'];
     console.log('🗄️ Verificando tablas...');
     
     for (const table of tables) {

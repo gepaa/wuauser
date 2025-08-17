@@ -37,7 +37,7 @@ export const citaService = {
         .select(`
           *,
           mascotas!inner(nombre, especie, foto_url),
-          profiles!inner(nombre_completo, telefono)
+          usuarios!inner(nombre_completo, telefono)
         `)
         .eq('veterinario_id', veterinarioId)
         .order('fecha_hora', { ascending: true });
@@ -62,7 +62,7 @@ export const citaService = {
           *,
           mascotas!inner(nombre, especie, foto_url, raza, edad),
           veterinarios(nombre_clinica, direccion_clinica, telefono_clinica),
-          profiles!inner(nombre_completo, telefono)
+          usuarios!inner(nombre_completo, telefono)
         `)
         .eq('id', id)
         .single();

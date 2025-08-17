@@ -2,6 +2,7 @@ import React from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
 import { useAuth } from '../contexts/AuthContext';
+import { useDeepLinking } from '../hooks/useDeepLinking';
 import { SplashScreen } from '../screens/SplashScreen';
 import { UserTypeScreen } from '../screens/UserTypeScreen';
 import { RegisterDuenoScreen } from '../screens/RegisterDuenoScreen';
@@ -13,6 +14,7 @@ import { AddPetScreen } from '../screens/AddPetScreen';
 import { PetDetailScreen } from '../screens/PetDetailScreen';
 import { VetDetailScreen } from '../screens/VetDetailScreen';
 import { EditProfileScreen } from '../screens/EditProfileScreen';
+import { EmailConfirmScreen } from '../screens/EmailConfirmScreen';
 import { TabNavigator } from './TabNavigator';
 
 const Stack = createStackNavigator();
@@ -27,6 +29,7 @@ export const AppNavigator: React.FC = () => {
 
 const AppContent: React.FC = () => {
   const { user, isLoading } = useAuth();
+  useDeepLinking(); // Configurar manejo de deep links
 
   if (isLoading) {
     return (
@@ -61,6 +64,7 @@ const AppContent: React.FC = () => {
           <Stack.Screen name="Login" component={LoginScreen} />
           <Stack.Screen name="RegisterDueno" component={RegisterDuenoScreen} />
           <Stack.Screen name="RegisterVeterinario" component={RegisterVeterinarioScreen} />
+          <Stack.Screen name="EmailConfirm" component={EmailConfirmScreen} />
         </>
       )}
       

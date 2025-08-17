@@ -23,17 +23,24 @@ WUAUSER is a React Native + Expo mobile app that connects veterinarians with pet
 # Working directory: wuauser-app/
 cd wuauser-app
 
-# Start development server
-npm start
+# Start development server (ESTABLE)
+npm run ios
 
-# Platform-specific builds
+# Alternative (si npm start falla por Node.js issues)
+npx expo run:ios
+
+# Platform-specific builds  
 npm run android
-npm run ios  
 npm run web
 
 # Package management
 npm install
 ```
+
+## Problemas conocidos de Expo + Node.js
+- Node.js 18-22 + React 19 + Expo 53+ tienen problemas con experimental type stripping
+- Solución: usar `npm run ios` directamente para compilar en iOS Simulator
+- O usar Expo Go app en dispositivo físico
 
 ## Project Structure
 

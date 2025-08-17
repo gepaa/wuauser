@@ -9,7 +9,7 @@ export const profileService = {
       }
 
       const { data, error } = await supabase
-        .from('profiles')
+        .from('usuarios')
         .select('*')
         .eq('id', userId)
         .single();
@@ -29,7 +29,7 @@ export const profileService = {
       }
 
       const { data, error } = await supabase
-        .from('profiles')
+        .from('usuarios')
         .update({ ...updates, updated_at: new Date().toISOString() })
         .eq('id', userId)
         .select()
@@ -51,7 +51,7 @@ export const profileService = {
 
       const now = new Date().toISOString();
       const { data, error } = await supabase
-        .from('profiles')
+        .from('usuarios')
         .insert({ ...profile, created_at: now, updated_at: now })
         .select()
         .single();
