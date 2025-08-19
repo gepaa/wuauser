@@ -4,8 +4,9 @@ import { TextInput, TouchableOpacity } from 'react-native';
 import { useForm, Controller } from 'react-hook-form';
 import { Ionicons, FontAwesome5 } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { colors } from '../constants/colors';
-import { authService } from '../services/supabase';
+import { authService, dbService } from '../services/supabase';
 
 interface RegisterVeterinarioScreenProps {
   navigation: any;
@@ -187,17 +188,65 @@ export const RegisterVeterinarioScreen: React.FC<RegisterVeterinarioScreenProps>
         servicios: [], // Can be added later
       };
       
-      const { data: result, error } = await authService.registrarVeterinario(
+      // Registrar en Supabase Auth
+      const { data: authData, error } = await authService.signUp(
         email,
         password,
-        datosVeterinario
+        {
+          tipo_usuario: 'veterinario',
+          nombre_completo: `${nombre} ${apellido}`,
+          cedula_profesional: cedulaProfesional
+        }
       );
       
       if (error) {
-        throw error;
+        Alert.alert('Error', error.message);
+        return;
       }
       
-      if (result?.user) {
+      if (!authData?.user) {
+        Alert.alert('Error', 'No se pudo crear el usuario');
+        return;
+      }
+      
+      // Crear perfil en la tabla profiles
+      try {
+        const profileData = {
+          email: email.toLowerCase().trim(),
+          nombre_completo: `${nombre} ${apellido}`,
+          telefono: telefono,
+          tipo_usuario: 'veterinario' as const,
+          cedula_profesional: cedulaProfesional,
+          especialidad: especialidad,
+          nombre_clinica: clinica,
+          direccion_clinica: direccionClinica,
+          verificado: false
+        };
+        
+        const { error: profileError } = await dbService.createProfile(authData.user.id, profileData);
+        
+        if (profileError) {
+          console.error('Error creando perfil veterinario:', profileError);
+          Alert.alert(
+            'Advertencia', 
+            'La cuenta se creó pero hubo un problema con el perfil. Intenta iniciar sesión.',
+            [{ text: 'OK', onPress: () => navigation.navigate('Login') }]
+          );
+          return;
+        }
+        
+        console.log('✅ Perfil de veterinario creado exitosamente');
+      } catch (profileError) {
+        console.error('Error en creación de perfil veterinario:', profileError);
+        Alert.alert(
+          'Advertencia', 
+          'La cuenta se creó pero hubo un problema con el perfil. Intenta iniciar sesión.',
+          [{ text: 'OK', onPress: () => navigation.navigate('Login') }]
+        );
+        return;
+      }
+      
+      if (authData?.user) {
         Alert.alert(
           '¡Solicitud Enviada!',
           'Tu solicitud está en revisión. Un administrador verificará tu información profesional y te contactará en las próximas 24-48 horas.',
@@ -234,19 +283,20 @@ export const RegisterVeterinarioScreen: React.FC<RegisterVeterinarioScreenProps>
   };
 
   return (
-    <KeyboardAvoidingView 
-      style={styles.container}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-    >
-      <LinearGradient
-        colors={['#4ECDC4', '#FFF8E7']}
-        style={styles.gradient}
+    <SafeAreaView style={styles.safeArea}>
+      <KeyboardAvoidingView 
+        style={styles.container}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       >
-        <ScrollView 
-          style={styles.scrollView}
-          showsVerticalScrollIndicator={false}
-          keyboardShouldPersistTaps="handled"
+        <LinearGradient
+          colors={['#4ECDC4', '#FFF8E7']}
+          style={styles.gradient}
         >
+          <ScrollView 
+            style={styles.scrollView}
+            showsVerticalScrollIndicator={false}
+            keyboardShouldPersistTaps="handled"
+          >
           <View style={styles.header}>
             <View style={styles.iconContainer}>
               <FontAwesome5 name="stethoscope" size={40} color="#44A08D" />
@@ -461,13 +511,18 @@ export const RegisterVeterinarioScreen: React.FC<RegisterVeterinarioScreenProps>
               </Text>
             </TouchableOpacity>
           </View>
-        </ScrollView>
-      </LinearGradient>
-    </KeyboardAvoidingView>
+          </ScrollView>
+        </LinearGradient>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
+  safeArea: {
+    flex: 1,
+    backgroundColor: '#4ECDC4',
+  },
   container: {
     flex: 1,
   },
@@ -478,7 +533,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   header: {
-    paddingTop: 20,
+    paddingTop: 10,
     paddingHorizontal: 20,
     paddingBottom: 30,
     alignItems: 'center',

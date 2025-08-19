@@ -10,6 +10,7 @@ import { WuauserLogo } from '../components/WuauserLogo';
 import { colors } from '../constants/colors';
 import { authService, dbService } from '../services/supabase';
 import { useCustomAlert } from '../components/CustomAlert';
+import { useAuth } from '../contexts/AuthContext';
 
 interface LoginScreenProps {
   navigation: any;
@@ -38,6 +39,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
   const [resetEmail, setResetEmail] = useState('');
   const [resetLoading, setResetLoading] = useState(false);
   const { showAlert, AlertComponent } = useCustomAlert();
+  const { signIn } = useAuth();
 
   const {
     control,
@@ -117,37 +119,23 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
     }
   };
 
-  const handleNavigationAfterLogin = async (user: any) => {
-    const userType = await detectUserType(user);
+  const handleNavigationAfterLogin = (user: any) => {
+    console.log('=== NAVEGACIÓN DESPUÉS DE LOGIN ===');
+    console.log('Usuario tipo:', user?.user_metadata?.tipo_usuario);
     
-    console.log('Tipo de usuario detectado:', userType);
-    console.log('Navigation object:', navigation);
-    console.log('Navigation state:', navigation.getState());
+    const userType = user?.user_metadata?.tipo_usuario || 'dueno';
     
     if (onSuccess) {
       onSuccess();
     } else {
-      // Navigate based on user type
-      if (userType === 'veterinario') {
-        console.log('Navegando a VetDashboard...');
-        navigation.reset({
-          index: 0,
-          routes: [{ name: 'VetDashboard' }], // TODO: Create VetDashboard screen
-        });
-      } else {
-        console.log('Navegando a HomeScreen...');
-        try {
-          navigation.navigate('HomeScreen');
-          console.log('Navigate to HomeScreen executed');
-        } catch (error) {
-          console.error('Error navigating to HomeScreen:', error);
-          // Fallback to reset navigation
-          navigation.reset({
-            index: 0,
-            routes: [{ name: 'HomeScreen' }],
-          });
-        }
-      }
+      // NUNCA usar MainTabs, solo HomeScreen
+      const targetScreen = userType === 'veterinario' ? 'VetDashboard' : 'HomeScreen';
+      console.log('Navegando a:', targetScreen);
+      
+      navigation.reset({
+        index: 0,
+        routes: [{ name: targetScreen }]
+      });
     }
   };
 
@@ -160,31 +148,15 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
     setIsLoading(true);
     
     try {
-      // Intentar login
-      const { data: authData, error } = await authService.signIn(data.email, data.password);
+      // Usar el método signIn del AuthContext
+      await signIn(data.email, data.password);
       
-      if (error) {
-        Alert.alert('Error', 'Email o contraseña incorrectos');
-        return;
-      }
+      // Guardar email para próxima vez
+      await SecureStore.setItemAsync('user_email', data.email);
       
-      if (authData?.user) {
-        // Obtener perfil del usuario
-        const { data: profile } = await dbService.getProfile(authData.user.id);
-        
-        // Navegar según tipo de usuario
-        if (profile?.tipo_usuario === 'veterinario') {
-          navigation.reset({
-            index: 0,
-            routes: [{ name: 'VetDashboard' }],
-          });
-        } else {
-          navigation.reset({
-            index: 0,
-            routes: [{ name: 'MainTabs' }],
-          });
-        }
-      }
+      // La navegación será manejada automáticamente por el AuthContext
+      // cuando detecte que el usuario está autenticado
+      console.log('Login exitoso, esperando actualización del contexto de autenticación...');
     } catch (error: any) {
       console.error('Error en login:', error);
       Alert.alert('Error', 'No se pudo iniciar sesión');
@@ -260,6 +232,10 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
       
       if (data?.user) {
         // Navigate directly to QR Scanner for guest users
+        console.log('=== DEBUG NAVEGACIÓN ===');
+        console.log('Intentando navegar a:', 'QRScanner');
+        console.log('Rutas disponibles:', navigation.getState());
+        console.log('=======================');
         navigation.reset({
           index: 0,
           routes: [{ name: 'QRScanner' }],
@@ -430,7 +406,13 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
 
             <TouchableOpacity
               style={styles.registerLink}
-              onPress={() => navigation.navigate('UserType')}
+              onPress={() => {
+                console.log('=== DEBUG NAVEGACIÓN ===');
+                console.log('Intentando navegar a:', 'UserType');
+                console.log('Rutas disponibles:', navigation.getState());
+                console.log('=======================');
+                navigation.navigate('UserType');
+              }}
             >
               <Text style={styles.registerLinkText}>
                 ¿No tienes cuenta? Regístrate aquí

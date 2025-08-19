@@ -275,7 +275,7 @@ export const AddPetScreen: React.FC<AddPetScreenProps> = ({ navigation, route })
       position: 'top'
     });
     
-    navigation.navigate('MyPets');
+    navigation.navigate('MisMascotas');
   };
 
   const renderProgressBar = () => (

@@ -15,6 +15,7 @@ import { PetDetailScreen } from '../screens/PetDetailScreen';
 import { VetDetailScreen } from '../screens/VetDetailScreen';
 import { EditProfileScreen } from '../screens/EditProfileScreen';
 import { EmailConfirmScreen } from '../screens/EmailConfirmScreen';
+import { HomeScreen } from '../screens/HomeScreen';
 import { TabNavigator } from './TabNavigator';
 
 const Stack = createStackNavigator();
@@ -55,7 +56,7 @@ const AppContent: React.FC = () => {
         user.profile?.tipo_usuario === 'veterinario' ? (
           <Stack.Screen name="VetDashboard" component={VetDashboardScreen} />
         ) : (
-          <Stack.Screen name="MainTabs" component={TabNavigator} />
+          <Stack.Screen name="HomeScreen" component={TabNavigator} />
         )
       ) : (
         // No autenticado

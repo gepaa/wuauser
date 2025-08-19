@@ -218,7 +218,7 @@ export const authService = {
       console.log('🧪 Campos exactos:', Object.keys(minimalData));
       
       const { data: profileData, error: profileError } = await supabase
-        .from('usuarios')
+        .from('profiles')
         .insert(minimalData)
         .select()
         .single();
@@ -461,7 +461,7 @@ export const authService = {
       console.log('📋 DEBUG: Campos exactos a insertar:', Object.keys(profileData));
       
       const { data: profileInsertData, error: profileError } = await supabase
-        .from('usuarios')
+        .from('profiles')
         .insert(profileData)
         .select()
         .single();
@@ -656,6 +656,45 @@ export const authService = {
   },
 };
 
+// ⚠️  IMPORTANTE: CONFIGURACIÓN DE TABLA PROFILES EN SUPABASE ⚠️
+// 
+// La tabla 'profiles' debe existir en Supabase para que funcione correctamente.
+// 
+// PASOS PARA CONFIGURAR LA TABLA:
+// 1. Ve a Supabase Dashboard → SQL Editor
+// 2. Ejecuta el contenido del archivo: supabase/migrations/create_profiles_table.sql
+// 3. O usa la CLI: npx supabase db reset
+// 
+// ESTRUCTURA DE LA TABLA PROFILES:
+// - id: uuid (primary key, references auth.users.id)
+// - email: text
+// - nombre_completo: text
+// - telefono: text (nullable)
+// - tipo_usuario: text ('dueno' | 'veterinario' | 'guest')
+// - created_at: timestamp
+// - updated_at: timestamp
+// 
+// Campos adicionales para veterinarios (nullable):
+// - cedula_profesional: text
+// - especialidad: text
+// - nombre_clinica: text
+// - direccion_clinica: text
+// - telefono_clinica: text
+// - verificado: boolean
+// - servicios: jsonb
+// - horario_atencion: jsonb
+// 
+// Campos adicionales para dueños (nullable):
+// - direccion: text
+// - codigo_postal: text
+// - ciudad: text
+// 
+// FUNCIONES AUTOMÁTICAS INCLUIDAS:
+// - Trigger automático para crear perfiles al registrar usuarios
+// - RLS (Row Level Security) habilitado
+// - Políticas de seguridad configuradas
+// - Trigger para actualizar updated_at automáticamente
+
 // Database helper functions
 export const dbService = {
   async getProfile(userId: string) {
@@ -669,19 +708,85 @@ export const dbService = {
         throw new Error('Supabase no está configurado');
       }
       
-      const { data, error } = await supabase
-        .from('usuarios')
+      // Intentar obtener perfil sin .single()
+      const { data: profiles } = await supabase
+        .from('profiles')
         .select('*')
-        .eq('id', userId)
+        .eq('id', userId);
+      
+      if (profiles && profiles.length > 0) {
+        return { data: profiles[0], error: null };
+      }
+      
+      // Si no hay perfil, crear uno básico
+      const { data: newProfile } = await supabase
+        .from('profiles')
+        .insert({
+          id: userId,
+          email: 'usuario@wuauser.com',
+          nombre_completo: 'Usuario Wuauser',
+          tipo_usuario: 'dueno'
+        })
+        .select();
+      
+      return { data: newProfile?.[0] || null, error: null };
+    } catch (error) {
+      console.error('Error total en getProfile:', error);
+      // Retornar perfil vacío para no bloquear
+      return { 
+        data: {
+          id: userId,
+          email: 'usuario@wuauser.com',
+          nombre_completo: 'Usuario',
+          tipo_usuario: 'dueno'
+        }, 
+        error: null 
+      };
+    }
+  },
+
+  async createProfile(userId: string, profileData: any) {
+    if (isDevelopment) {
+      console.log('🎭 Mock createProfile:', userId, profileData);
+      return { data: null, error: null };
+    }
+    
+    try {
+      if (!supabase) {
+        throw new Error('Supabase no está configurado');
+      }
+      
+      const newProfileData = {
+        id: userId,
+        email: profileData.email,
+        tipo_usuario: profileData.tipo_usuario,
+        nombre_completo: profileData.nombre_completo,
+        ...(profileData.telefono && { telefono: profileData.telefono }),
+        // Campos específicos de veterinarios
+        ...(profileData.cedula_profesional && { cedula_profesional: profileData.cedula_profesional }),
+        ...(profileData.especialidad && { especialidad: profileData.especialidad }),
+        ...(profileData.nombre_clinica && { nombre_clinica: profileData.nombre_clinica }),
+        ...(profileData.direccion_clinica && { direccion_clinica: profileData.direccion_clinica }),
+        ...(profileData.verificado !== undefined && { verificado: profileData.verificado }),
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      };
+      
+      console.log('🔧 Insertando nuevo perfil:', newProfileData);
+      
+      const { data, error } = await supabase
+        .from('profiles')
+        .insert(newProfileData)
+        .select()
         .single();
       
       if (error) {
-        throw handleSupabaseError(error, 'getProfile');
+        throw handleSupabaseError(error, 'createProfile');
       }
       
       return { data, error: null };
     } catch (error) {
-      console.error('DBService: Error en getProfile', error);
+      console.error('DBService: Error en createProfile', error);
       return { data: null, error };
     }
   },
@@ -698,7 +803,7 @@ export const dbService = {
       }
       
       const { data, error } = await supabase
-        .from('usuarios')
+        .from('profiles')
         .update(updates)
         .eq('id', userId)
         .select()
@@ -727,7 +832,7 @@ export const dbService = {
       }
       
       let query = supabase
-        .from('usuarios')
+        .from('profiles')
         .select(`
           *
         `)

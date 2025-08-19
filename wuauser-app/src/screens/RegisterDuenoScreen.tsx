@@ -4,8 +4,9 @@ import { TextInput, TouchableOpacity } from 'react-native';
 import { useForm, Controller } from 'react-hook-form';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { colors } from '../constants/colors';
-import { authService } from '../services/supabase';
+import { authService, dbService } from '../services/supabase';
 
 interface RegisterDuenoScreenProps {
   navigation: any;
@@ -176,7 +177,44 @@ export const RegisterDuenoScreen: React.FC<RegisterDuenoScreenProps> = ({
         return;
       }
       
-      // Éxito - navegar a home
+      if (!authData?.user) {
+        Alert.alert('Error', 'No se pudo crear el usuario');
+        return;
+      }
+      
+      // Crear perfil en la tabla profiles
+      try {
+        const profileData = {
+          email: email.toLowerCase().trim(),
+          nombre_completo: `${nombre} ${apellido}`,
+          telefono: telefono,
+          tipo_usuario: 'dueno' as const
+        };
+        
+        const { error: profileError } = await dbService.createProfile(authData.user.id, profileData);
+        
+        if (profileError) {
+          console.error('Error creando perfil:', profileError);
+          Alert.alert(
+            'Advertencia', 
+            'La cuenta se creó pero hubo un problema con el perfil. Intenta iniciar sesión.',
+            [{ text: 'OK', onPress: () => navigation.navigate('Login') }]
+          );
+          return;
+        }
+        
+        console.log('✅ Perfil de dueño creado exitosamente');
+      } catch (profileError) {
+        console.error('Error en creación de perfil:', profileError);
+        Alert.alert(
+          'Advertencia', 
+          'La cuenta se creó pero hubo un problema con el perfil. Intenta iniciar sesión.',
+          [{ text: 'OK', onPress: () => navigation.navigate('Login') }]
+        );
+        return;
+      }
+      
+      // Éxito - navegar a login
       Alert.alert(
         'Registro Exitoso',
         'Tu cuenta ha sido creada. Revisa tu email para confirmar.',
@@ -196,19 +234,20 @@ export const RegisterDuenoScreen: React.FC<RegisterDuenoScreenProps> = ({
   };
 
   return (
-    <KeyboardAvoidingView 
-      style={styles.container}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-    >
-      <LinearGradient
-        colors={['#F4B740', '#FFF8E7']}
-        style={styles.gradient}
+    <SafeAreaView style={styles.safeArea}>
+      <KeyboardAvoidingView 
+        style={styles.container}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       >
-        <ScrollView 
-          style={styles.scrollView}
-          showsVerticalScrollIndicator={false}
-          keyboardShouldPersistTaps="handled"
+        <LinearGradient
+          colors={['#F4B740', '#FFF8E7']}
+          style={styles.gradient}
         >
+          <ScrollView 
+            style={styles.scrollView}
+            showsVerticalScrollIndicator={false}
+            keyboardShouldPersistTaps="handled"
+          >
           <View style={styles.header}>
             <Text style={styles.title}>Crear Cuenta de Dueño</Text>
             <Text style={styles.subtitle}>
@@ -349,13 +388,18 @@ export const RegisterDuenoScreen: React.FC<RegisterDuenoScreenProps> = ({
               </Text>
             </TouchableOpacity>
           </View>
-        </ScrollView>
-      </LinearGradient>
-    </KeyboardAvoidingView>
+          </ScrollView>
+        </LinearGradient>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
+  safeArea: {
+    flex: 1,
+    backgroundColor: '#F4B740',
+  },
   container: {
     flex: 1,
   },
@@ -366,7 +410,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   header: {
-    paddingTop: 20,
+    paddingTop: 10,
     paddingHorizontal: 20,
     paddingBottom: 30,
     alignItems: 'center',
