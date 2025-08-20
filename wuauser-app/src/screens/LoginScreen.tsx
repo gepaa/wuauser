@@ -8,7 +8,7 @@ import * as SecureStore from 'expo-secure-store';
 import Toast from 'react-native-toast-message';
 import { WuauserLogo } from '../components/WuauserLogo';
 import { colors } from '../constants/colors';
-import { authService, dbService } from '../services/supabase';
+import { authService, dbService, supabase } from '../services/supabase';
 import { useCustomAlert } from '../components/CustomAlert';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -120,46 +120,111 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
   };
 
   const handleNavigationAfterLogin = (user: any) => {
-    console.log('=== NAVEGACIÓN DESPUÉS DE LOGIN ===');
+    console.log('=== DEBUG NAVEGACIÓN ===');
+    console.log('Navigator state:', navigation.getState());
+    console.log('Parent navigator:', navigation.getParent());
+    console.log('Can go back:', navigation.canGoBack());
     console.log('Usuario tipo:', user?.user_metadata?.tipo_usuario);
     
     const userType = user?.user_metadata?.tipo_usuario || 'dueno';
+    const targetScreen = userType === 'veterinario' ? 'VetDashboard' : 'HomeScreen';
+    console.log('Target screen:', targetScreen);
     
     if (onSuccess) {
+      console.log('Usando onSuccess callback');
       onSuccess();
-    } else {
-      // NUNCA usar MainTabs, solo HomeScreen
-      const targetScreen = userType === 'veterinario' ? 'VetDashboard' : 'HomeScreen';
-      console.log('Navegando a:', targetScreen);
-      
+      return;
+    }
+    
+    // Intentar diferentes formas de navegar
+    try {
+      console.log('Intentando reset...');
+      // Opción 1: Reset
       navigation.reset({
         index: 0,
         routes: [{ name: targetScreen }]
       });
+      console.log('✅ Reset exitoso');
+    } catch (e1) {
+      console.error('❌ Reset failed:', e1);
+      
+      try {
+        console.log('Intentando navigate...');
+        // Opción 2: Navigate
+        navigation.navigate(targetScreen as any);
+        console.log('✅ Navigate exitoso');
+      } catch (e2) {
+        console.error('❌ Navigate failed:', e2);
+        
+        try {
+          console.log('Intentando replace...');
+          // Opción 3: Replace
+          navigation.replace(targetScreen as any);
+          console.log('✅ Replace exitoso');
+        } catch (e3) {
+          console.error('❌ Replace failed:', e3);
+          console.error('🚨 NO SE PUEDE NAVEGAR A', targetScreen);
+          
+          // Último intento: navegar a una ruta que sabemos que existe
+          try {
+            console.log('Último intento: navegando a UserType...');
+            navigation.navigate('UserType');
+            console.log('✅ Navegación a UserType exitosa');
+          } catch (e4) {
+            console.error('❌ Ni siquiera UserType funciona:', e4);
+            console.error('🆘 NAVEGACIÓN COMPLETAMENTE ROTA');
+          }
+        }
+      }
     }
+    console.log('=========================');
   };
 
   const handleLogin = async (data: FormData) => {
-    if (!data.email || !data.password) {
-      Alert.alert('Error', 'Por favor ingresa email y contraseña');
-      return;
-    }
-    
     setIsLoading(true);
     
     try {
-      // Usar el método signIn del AuthContext
-      await signIn(data.email, data.password);
+      const { email, password } = data;
       
-      // Guardar email para próxima vez
-      await SecureStore.setItemAsync('user_email', data.email);
+      // Login con Supabase
+      const { data: authData, error } = await authService.signIn(email, password);
       
-      // La navegación será manejada automáticamente por el AuthContext
-      // cuando detecte que el usuario está autenticado
-      console.log('Login exitoso, esperando actualización del contexto de autenticación...');
+      if (error) throw error;
+      
+      if (authData?.user && authData?.session) {
+        // IMPORTANTE: Verificar que la sesión realmente existe
+        const { data: { session } } = await supabase.auth.getSession();
+        
+        console.log('=== SESIÓN DESPUÉS DE LOGIN ===');
+        console.log('Sesión existe:', !!session);
+        console.log('Access token:', session?.access_token ? 'Sí' : 'No');
+        console.log('Usuario ID:', session?.user?.id);
+        console.log('================================');
+        
+        if (!session) {
+          // Si no hay sesión, intentar setear manualmente
+          await supabase.auth.setSession({
+            access_token: authData.session.access_token,
+            refresh_token: authData.session.refresh_token
+          });
+        }
+        
+        // Guardar en SecureStore
+        await SecureStore.setItemAsync('supabase_session', JSON.stringify(authData.session));
+        await SecureStore.setItemAsync('user_email', email);
+        
+        // Esperar un momento para que la sesión se establezca
+        setTimeout(() => {
+          handleNavigationAfterLogin(authData.user);
+        }, 1000);
+      }
     } catch (error: any) {
       console.error('Error en login:', error);
-      Alert.alert('Error', 'No se pudo iniciar sesión');
+      showAlert({
+        type: 'error',
+        title: 'Error de Inicio de Sesión',
+        message: error.message || 'No se pudo iniciar sesión'
+      });
     } finally {
       setIsLoading(false);
     }

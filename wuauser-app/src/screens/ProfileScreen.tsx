@@ -5,15 +5,18 @@ import {
   ScrollView, 
   StyleSheet, 
   TouchableOpacity,
-  Switch 
+  Switch,
+  ActivityIndicator,
+  Alert
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as SecureStore from 'expo-secure-store';
 import Toast from 'react-native-toast-message';
 import { Colors } from '../constants/colors';
-import { authService } from '../services/supabase';
+import { authService, supabase } from '../services/supabase';
 import { useCustomAlert } from '../components/CustomAlert';
+import { useUserProfile } from '../hooks/useUserProfile';
 
 interface ProfileScreenProps {
   navigation: any;
@@ -38,50 +41,11 @@ interface ProfileOption {
 }
 
 export const ProfileScreen: React.FC<ProfileScreenProps> = ({ navigation }) => {
-  const [userData, setUserData] = useState<UserData | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const { profile, loading, refreshProfile } = useUserProfile();
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
   const [locationEnabled, setLocationEnabled] = useState(true);
   const { showAlert, AlertComponent } = useCustomAlert();
 
-  useEffect(() => {
-    loadUserData();
-  }, []);
-
-  const loadUserData = async () => {
-    try {
-      const savedEmail = await SecureStore.getItemAsync('user_email');
-      const userType = await SecureStore.getItemAsync('user_type') || 'dueno';
-      
-      if (savedEmail) {
-        // In development mode, create mock user data
-        if (process.env.NODE_ENV === 'development') {
-          const mockUserData: UserData = {
-            nombre_completo: savedEmail.split('@')[0].replace(/[._]/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
-            email: savedEmail,
-            telefono: '+52 55 1234 5678',
-            tipo_usuario: userType
-          };
-          setUserData(mockUserData);
-        } else {
-          // In production, fetch from Supabase
-          const { user, error } = await authService.getCurrentUser();
-          if (user && !error) {
-            setUserData({
-              nombre_completo: user.user_metadata?.nombre_completo || user.email?.split('@')[0] || 'Usuario',
-              email: user.email || '',
-              telefono: user.user_metadata?.telefono,
-              tipo_usuario: user.user_metadata?.tipo_usuario || userType
-            });
-          }
-        }
-      }
-    } catch (error) {
-      console.error('Error loading user data:', error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
 
   const handleEditProfile = () => {
     navigation.navigate('EditProfile');
@@ -288,9 +252,10 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ navigation }) => {
     },
   ];
 
-  if (isLoading) {
+  if (loading) {
     return (
       <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color="#F4B740" />
         <Text style={styles.loadingText}>Cargando perfil...</Text>
       </View>
     );
@@ -310,16 +275,96 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ navigation }) => {
           </View>
           
           <View style={styles.userDetails}>
-            <Text style={styles.userName}>{userData?.nombre_completo || 'Usuario'}</Text>
-            <Text style={styles.userEmail}>{userData?.email}</Text>
-            {userData?.telefono && (
-              <Text style={styles.userPhone}>{userData.telefono}</Text>
+            <Text style={styles.userName}>{profile?.nombre_completo || 'Sin nombre'}</Text>
+            <Text style={styles.userEmail}>{profile?.email || 'Sin email'}</Text>
+            {profile?.telefono && (
+              <Text style={styles.userPhone}>{profile.telefono}</Text>
             )}
             <View style={styles.userTypeBadge}>
               <Text style={styles.userTypeText}>
-                {userData?.tipo_usuario === 'veterinario' ? '🩺 Veterinario' : '🐕 Dueño de Mascota'}
+                {profile?.tipo_usuario === 'veterinario' ? '🩺 Veterinario' : '🐕 Dueño de Mascota'}
               </Text>
             </View>
+            
+            {/* Botón para actualizar perfil */}
+            <TouchableOpacity 
+              style={styles.refreshButton} 
+              onPress={refreshProfile}
+            >
+              <Ionicons name="refresh" size={16} color="#F4B740" />
+              <Text style={styles.refreshButtonText}>Actualizar</Text>
+            </TouchableOpacity>
+            
+            {/* Debug button - temporal */}
+            <TouchableOpacity 
+              style={styles.debugButton}
+              onPress={async () => {
+                try {
+                  const { data: { user } } = await supabase.auth.getUser();
+                  
+                  if (!user) {
+                    Alert.alert('Error', 'No hay usuario autenticado');
+                    return;
+                  }
+                  
+                  // ACTUALIZAR el perfil existente con datos reales
+                  const { data: updatedProfile, error } = await supabase
+                    .from('profiles')
+                    .update({
+                      nombre_completo: 'Pablo Guido',  // TUS DATOS REALES
+                      telefono: '5581707481',
+                      email: 'guidoo.pabloo@gmail.com'
+                    })
+                    .eq('id', user.id)
+                    .select()
+                    .single();
+                  
+                  if (error) {
+                    Alert.alert('Error actualizando', error.message);
+                  } else {
+                    Alert.alert('¡Éxito!', 'Perfil actualizado correctamente');
+                    // Recargar la pantalla
+                    await refreshProfile();
+                  }
+                } catch (error) {
+                  Alert.alert('Error', error.message);
+                }
+              }}
+            >
+              <Text style={styles.debugButtonText}>🔄 Actualizar con Datos Reales</Text>
+            </TouchableOpacity>
+            
+            {/* Force Logout button - temporal */}
+            <TouchableOpacity 
+              style={[styles.debugButton, { backgroundColor: '#FF3B30', marginTop: 4 }]}
+              onPress={async () => {
+                try {
+                  // Cerrar sesión en Supabase
+                  await supabase.auth.signOut();
+                  
+                  // Limpiar TODOS los datos de SecureStore
+                  await SecureStore.deleteItemAsync('supabase_session');
+                  await SecureStore.deleteItemAsync('user_email');
+                  await SecureStore.deleteItemAsync('user_session');
+                  await SecureStore.deleteItemAsync('user_type');
+                  await SecureStore.deleteItemAsync('user_profile');
+                  await SecureStore.deleteItemAsync('profile_image');
+                  
+                  // Navegar al login
+                  navigation.reset({
+                    index: 0,
+                    routes: [{ name: 'UserType' }]
+                  });
+                  
+                  Alert.alert('Sesión cerrada', 'Has cerrado sesión correctamente');
+                } catch (error) {
+                  console.error('Error cerrando sesión:', error);
+                  Alert.alert('Error', 'No se pudo cerrar sesión: ' + error.message);
+                }
+              }}
+            >
+              <Text style={styles.debugButtonText}>🚪 Forzar Cerrar Sesión</Text>
+            </TouchableOpacity>
           </View>
         </View>
       </LinearGradient>
@@ -529,6 +574,35 @@ const styles = StyleSheet.create({
   },
   safetySpace: {
     height: 100,
+  },
+  refreshButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(244, 183, 64, 0.1)',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+    marginTop: 8,
+    alignSelf: 'flex-start',
+  },
+  refreshButtonText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#F4B740',
+    marginLeft: 4,
+  },
+  debugButton: {
+    backgroundColor: '#FF4444',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 16,
+    marginTop: 8,
+    alignSelf: 'flex-start',
+  },
+  debugButtonText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#FFF',
   },
 });
 

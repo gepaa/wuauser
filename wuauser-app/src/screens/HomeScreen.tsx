@@ -8,13 +8,15 @@ import {
   Image,
   Alert,
   RefreshControl,
-  Dimensions 
+  Dimensions,
+  ActivityIndicator
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as SecureStore from 'expo-secure-store';
 import { colors } from '../constants/colors';
-import { authService, dbService } from '../services/supabase';
+import { authService, dbService, supabase } from '../services/supabase';
+import { useUserProfile } from '../hooks/useUserProfile';
 
 const { width } = Dimensions.get('window');
 
@@ -68,48 +70,14 @@ const petTips = [
 ];
 
 export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
-  const [userData, setUserData] = useState<UserData | null>(null);
+  const { profile, loading } = useUserProfile();
   const [pets, setPets] = useState<Pet[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
   useEffect(() => {
-    loadUserData();
     loadUserPets();
   }, []);
 
-  const loadUserData = async () => {
-    try {
-      const savedEmail = await SecureStore.getItemAsync('user_email');
-      const userType = await SecureStore.getItemAsync('user_type') || 'dueno';
-      
-      if (savedEmail) {
-        // In development mode, create mock user data
-        if (process.env.NODE_ENV === 'development') {
-          const mockUserData: UserData = {
-            nombre_completo: savedEmail.split('@')[0].replace(/[._]/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
-            email: savedEmail,
-            tipo_usuario: userType
-          };
-          setUserData(mockUserData);
-        } else {
-          // In production, fetch from Supabase
-          const { user, error } = await authService.getCurrentUser();
-          if (user && !error) {
-            setUserData({
-              nombre_completo: user.user_metadata?.nombre_completo || user.email?.split('@')[0] || 'Usuario',
-              email: user.email || '',
-              tipo_usuario: user.user_metadata?.tipo_usuario || userType
-            });
-          }
-        }
-      }
-    } catch (error) {
-      console.error('Error loading user data:', error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
 
   const loadUserPets = async () => {
     try {
@@ -136,7 +104,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
 
   const onRefresh = React.useCallback(async () => {
     setRefreshing(true);
-    await Promise.all([loadUserData(), loadUserPets()]);
+    await loadUserPets();
     setRefreshing(false);
   }, []);
 
@@ -212,14 +180,16 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
   };
 
   const getUserFirstName = () => {
-    if (!userData?.nombre_completo) return 'Usuario';
-    return userData.nombre_completo.split(' ')[0];
+    // Usar el nombre del perfil real del hook
+    const userName = profile?.nombre_completo?.split(' ')[0] || 'Usuario';
+    return userName;
   };
 
-  if (isLoading) {
+  if (loading) {
     return (
       <View style={styles.loadingContainer}>
-        <Text style={styles.loadingText}>Cargando...</Text>
+        <ActivityIndicator size="large" color="#F4B740" />
+        <Text style={styles.loadingText}>Cargando perfil...</Text>
       </View>
     );
   }

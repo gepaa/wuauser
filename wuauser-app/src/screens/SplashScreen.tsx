@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, Animated, Dimensions } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { WuauserLogo } from '../components/WuauserLogo';
 import { Colors } from '../constants/colors';
+import { useAuth } from '../contexts/AuthContext';
 
 const { width, height } = Dimensions.get('window');
 
@@ -15,6 +16,7 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({ navigation }) => {
   const scaleAnim = useRef(new Animated.Value(0.8)).current;
   const textFadeAnim = useRef(new Animated.Value(0)).current;
   const pulseAnim = useRef(new Animated.Value(1)).current;
+  const { user, isLoading } = useAuth();
 
   useEffect(() => {
     const animateIn = () => {
@@ -60,11 +62,23 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({ navigation }) => {
     const timer = setTimeout(() => {
       animateIn();
       pulse();
-      setTimeout(() => navigation.replace('UserType'), 3000);
+      setTimeout(() => {
+        // Si hay usuario autenticado
+        if (user) {
+          if (user.profile?.tipo_usuario === 'veterinario') {
+            navigation.replace('VetDashboard');
+          } else {
+            navigation.replace('HomeScreen');
+          }
+        } else {
+          // No autenticado - ir a selección de tipo de usuario
+          navigation.replace('UserType');
+        }
+      }, 3000);
     }, 200);
 
     return () => clearTimeout(timer);
-  }, [fadeAnim, scaleAnim, textFadeAnim, pulseAnim, navigation]);
+  }, [fadeAnim, scaleAnim, textFadeAnim, pulseAnim, navigation, user]);
 
   return (
     <LinearGradient

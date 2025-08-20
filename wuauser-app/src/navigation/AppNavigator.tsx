@@ -50,26 +50,16 @@ const AppContent: React.FC = () => {
           },
         }),
       }}
+      initialRouteName={user ? 'HomeScreen' : 'UserType'}
     >
-      {user ? (
-        // Usuario autenticado
-        user.profile?.tipo_usuario === 'veterinario' ? (
-          <Stack.Screen name="VetDashboard" component={VetDashboardScreen} />
-        ) : (
-          <Stack.Screen name="HomeScreen" component={TabNavigator} />
-        )
-      ) : (
-        // No autenticado
-        <>
-          <Stack.Screen name="UserType" component={UserTypeScreen} />
-          <Stack.Screen name="Login" component={LoginScreen} />
-          <Stack.Screen name="RegisterDueno" component={RegisterDuenoScreen} />
-          <Stack.Screen name="RegisterVeterinario" component={RegisterVeterinarioScreen} />
-          <Stack.Screen name="EmailConfirm" component={EmailConfirmScreen} />
-        </>
-      )}
-      
-      {/* Screens accesibles independientemente del estado de auth */}
+      {/* Screens accesibles siempre */}
+      <Stack.Screen name="UserType" component={UserTypeScreen} />
+      <Stack.Screen name="Login" component={LoginScreen} />
+      <Stack.Screen name="RegisterDueno" component={RegisterDuenoScreen} />
+      <Stack.Screen name="RegisterVeterinario" component={RegisterVeterinarioScreen} />
+      <Stack.Screen name="EmailConfirm" component={EmailConfirmScreen} />
+      <Stack.Screen name="HomeScreen" component={TabNavigator} />
+      <Stack.Screen name="VetDashboard" component={VetDashboardScreen} />
       <Stack.Screen name="QRScanner" component={QRScannerScreen} />
       <Stack.Screen name="AddPet" component={AddPetScreen} />
       <Stack.Screen name="PetDetail" component={PetDetailScreen} />
