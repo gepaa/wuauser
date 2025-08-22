@@ -106,3 +106,5 @@ export const nombreServicio = async (): Promise<TipoRetorno> => {
 ## Referencias
 
 - Detalle ampliado: `docs/rules.es.md`.
+
+"IMPORTANTE: Si necesitas algún paquete npm/expo, incluye SIEMPRE el comando de instalación al inicio de tu respuesta o ejecutalo tú mismo en la consola".

@@ -48,3 +48,5 @@ export const nombreServicio = async (): Promise<Tipo> => {
 ```
 
 Referencias detalladas: ver `CONTRIBUTING.md` y `docs/rules.es.md`.
+
+"IMPORTANTE: Si necesitas algún paquete npm/expo, incluye SIEMPRE el comando de instalación al inicio de tu respuesta o ejecutalo tú mismo en la consola".

@@ -122,3 +122,5 @@ Requires `.env` file in wuauser-app/ with:
 - No src/hooks or src/utils directories created yet
 - Main App.tsx still shows default Expo template
 - Navigation setup exists but not connected to main App component
+
+"IMPORTANTE: Si necesitas algún paquete npm/expo, incluye SIEMPRE el comando de instalación al inicio de tu respuesta o ejecutalo tú mismo en la consola".

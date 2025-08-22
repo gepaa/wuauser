@@ -20,6 +20,8 @@ import { Colors } from '../constants/colors';
 import { petService, PetData, VaccinationRecord, MedicalRecord } from '../services/petService';
 import medicalRecordService from '../services/medicalRecordService';
 import { MedicalRecordStats, MedicalRecordSummary } from '../types/medicalRecord';
+import chipTrackingService from '../services/chipTrackingService';
+import { ChipStatus, SafeZone } from '../types/chipTracking';
 
 const { width } = Dimensions.get('window');
 
@@ -47,12 +49,17 @@ export const PetDetailScreen: React.FC<PetDetailScreenProps> = ({ navigation, ro
   // New medical record system
   const [medicalStats, setMedicalStats] = useState<MedicalRecordStats | null>(null);
   const [recentRecords, setRecentRecords] = useState<MedicalRecordSummary[]>([]);
+  
+  // Chip tracking
+  const [chipStatus, setChipStatus] = useState<ChipStatus | null>(null);
+  const [safeZones, setSafeZones] = useState<SafeZone[]>([]);
 
   useEffect(() => {
     if (!initialPetData) {
       loadPetData();
     }
     loadMedicalData();
+    loadChipData();
   }, []);
 
   const loadPetData = async () => {
@@ -99,6 +106,18 @@ export const PetDetailScreen: React.FC<PetDetailScreenProps> = ({ navigation, ro
       }
     } catch (error) {
       console.error('Error loading medical data:', error);
+    }
+  };
+
+  const loadChipData = async () => {
+    try {
+      const status = await chipTrackingService.getChipStatus(petId);
+      setChipStatus(status);
+      
+      const zones = await chipTrackingService.getSafeZones(petId);
+      setSafeZones(zones);
+    } catch (error) {
+      console.error('Error loading chip data:', error);
     }
   };
 
@@ -437,6 +456,39 @@ export const PetDetailScreen: React.FC<PetDetailScreenProps> = ({ navigation, ro
     return colors[type as keyof typeof colors] || '#757575';
   };
 
+  const getChipStatusColor = (status: ChipStatus['status']) => {
+    const colors = {
+      active: '#4CAF50',
+      inactive: '#FF9800',
+      low_battery: '#FF9800',
+      no_signal: '#F44336',
+      offline: '#999'
+    };
+    return colors[status] || '#999';
+  };
+
+  const getChipStatusText = (status: ChipStatus['status']) => {
+    const texts = {
+      active: 'Activo',
+      inactive: 'Inactivo',
+      low_battery: 'Batería baja',
+      no_signal: 'Sin señal',
+      offline: 'Desconectado'
+    };
+    return texts[status] || 'Desconocido';
+  };
+
+  const handleConfigureSafeZone = () => {
+    Alert.alert(
+      'Configurar Zona Segura',
+      'Esta funcionalidad permitirá definir áreas geográficas seguras para tu mascota.',
+      [
+        { text: 'Cancelar' },
+        { text: 'Próximamente', style: 'default' }
+      ]
+    );
+  };
+
   const renderMedicalTab = () => (
     <View style={styles.tabContent}>
       <Text style={styles.tabTitle}>Historial Médico</Text>
@@ -492,6 +544,47 @@ export const PetDetailScreen: React.FC<PetDetailScreenProps> = ({ navigation, ro
           <Text style={styles.viewCompleteText}>Ver expediente completo →</Text>
         </View>
       </TouchableOpacity>
+
+      {/* Chip Tracking Section */}
+      {chipStatus && (
+        <View style={styles.chipTrackingCard}>
+          <View style={styles.chipTrackingHeader}>
+            <View style={styles.chipTrackingTitle}>
+              <Ionicons name="location" size={24} color={getChipStatusColor(chipStatus.status)} />
+              <Text style={styles.chipTrackingTitleText}>Chip Wuauser</Text>
+            </View>
+            <View style={[styles.chipStatusBadge, { backgroundColor: getChipStatusColor(chipStatus.status) }]}>
+              <Text style={styles.chipStatusText}>{getChipStatusText(chipStatus.status)}</Text>
+            </View>
+          </View>
+          
+          <View style={styles.chipStatsRow}>
+            <View style={styles.chipStatItem}>
+              <Text style={styles.chipStatNumber}>{chipStatus.batteryLevel}%</Text>
+              <Text style={styles.chipStatLabel}>Batería</Text>
+            </View>
+            <View style={styles.chipStatItem}>
+              <Text style={styles.chipStatNumber}>{chipStatus.signalStrength}</Text>
+              <Text style={styles.chipStatLabel}>Señal</Text>
+            </View>
+            <View style={styles.chipStatItem}>
+              <Text style={styles.chipStatNumber}>{chipStatus.isInSafeZone ? 'Sí' : 'No'}</Text>
+              <Text style={styles.chipStatLabel}>En zona segura</Text>
+            </View>
+          </View>
+          
+          <TouchableOpacity style={styles.locationAlert} onPress={handleConfigureSafeZone}>
+            <Ionicons name="location" size={20} color={Colors.primary} />
+            <View style={styles.locationAlertContent}>
+              <Text style={styles.locationAlertTitle}>Configurar zona segura</Text>
+              <Text style={styles.locationAlertSubtitle}>
+                Recibe alertas si sale del área ({safeZones.length} configuradas)
+              </Text>
+            </View>
+            <Ionicons name="chevron-forward" size={20} color={Colors.primary} />
+          </TouchableOpacity>
+        </View>
+      )}
       
       {/* Vaccinations Section */}
       <View style={styles.medicalSection}>
@@ -1193,6 +1286,89 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
     color: '#2196F3',
+  },
+  // Chip Tracking Card Styles
+  chipTrackingCard: {
+    backgroundColor: '#FFF',
+    borderRadius: 16,
+    padding: 20,
+    marginBottom: 20,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 4,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 8,
+  },
+  chipTrackingHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  chipTrackingTitle: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  chipTrackingTitleText: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#2A2A2A',
+    marginLeft: 8,
+  },
+  chipStatusBadge: {
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  chipStatusText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#FFF',
+  },
+  chipStatsRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    marginBottom: 16,
+  },
+  chipStatItem: {
+    alignItems: 'center',
+  },
+  chipStatNumber: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#2A2A2A',
+  },
+  chipStatLabel: {
+    fontSize: 12,
+    color: '#666',
+    marginTop: 2,
+  },
+  locationAlert: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFF8E7',
+    padding: 16,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: Colors.primary,
+  },
+  locationAlertContent: {
+    flex: 1,
+    marginLeft: 12,
+    marginRight: 8,
+  },
+  locationAlertTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#2A2A2A',
+    marginBottom: 4,
+  },
+  locationAlertSubtitle: {
+    fontSize: 14,
+    color: '#666',
   },
 });
 

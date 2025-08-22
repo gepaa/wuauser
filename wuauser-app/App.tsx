@@ -3,6 +3,8 @@ import { AuthProvider } from './src/contexts/AuthContext';
 import { AppNavigator } from './src/navigation/AppNavigator';
 import { supabase } from './src/services/supabase';
 import * as SecureStore from 'expo-secure-store';
+import chipTrackingService from './src/services/chipTrackingService';
+import locationAlertsService from './src/services/locationAlertsService';
 
 export default function App() {
   const [isReady, setIsReady] = useState(false);
@@ -10,7 +12,22 @@ export default function App() {
 
   useEffect(() => {
     restoreSession();
+    initializeServices();
   }, []);
+
+  const initializeServices = async () => {
+    try {
+      // Initialize chip tracking service
+      await chipTrackingService.initialize();
+      
+      // Clean up old alerts
+      await locationAlertsService.cleanupOldAlerts();
+      
+      console.log('🏷️ Chip tracking services initialized');
+    } catch (error) {
+      console.error('Error initializing chip tracking services:', error);
+    }
+  };
 
   const restoreSession = async () => {
     try {

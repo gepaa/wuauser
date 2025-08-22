@@ -22,6 +22,8 @@ import { authService } from '../services/supabase';
 import { CustomAlert, AlertType } from '../components/CustomAlert';
 import Toast from 'react-native-toast-message';
 import QRCode from 'react-native-qrcode-svg';
+import { RadioButton } from '../components/RadioButton';
+import chipTrackingService from '../services/chipTrackingService';
 
 interface AddPetScreenProps {
   navigation: any;
@@ -52,7 +54,9 @@ export const AddPetScreen: React.FC<AddPetScreenProps> = ({ navigation, route })
   const [isLoading, setIsLoading] = useState(false);
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [selectedPhoto, setSelectedPhoto] = useState<string | null>(null);
-  const [hasChip, setHasChip] = useState(false);
+  const [hasChip, setHasChip] = useState<boolean | null>(null);
+  const [chipCode, setChipCode] = useState('');
+  const [chipVerified, setChipVerified] = useState(false);
   const [selectedVaccines, setSelectedVaccines] = useState<string[]>([]);
   const [generatedQR, setGeneratedQR] = useState<string | null>(null);
   
@@ -141,8 +145,65 @@ export const AddPetScreen: React.FC<AddPetScreenProps> = ({ navigation, route })
     setValue('vacunas', newVaccines);
   };
 
+  const handleScanChip = () => {
+    // Navigate to QR scanner for chip scanning
+    navigation.navigate('QRScanner', {
+      onScanComplete: (scannedCode: string) => {
+        handleChipCodeScanned(scannedCode);
+      }
+    });
+  };
+
+  const handleChipCodeScanned = async (scannedCode: string) => {
+    try {
+      setChipCode(scannedCode);
+      const verification = await chipTrackingService.verifyChipCode(scannedCode);
+      
+      if (verification.isValid && !verification.isRegistered) {
+        setChipVerified(true);
+        Toast.show({
+          type: 'success',
+          text1: '¡Chip verificado!',
+          text2: 'GPS activado para tu mascota',
+          position: 'top'
+        });
+      } else if (verification.isRegistered) {
+        showAlert({
+          type: 'warning',
+          title: 'Chip ya registrado',
+          message: 'Este chip ya está asociado a otra mascota'
+        });
+        setChipVerified(false);
+      } else {
+        showAlert({
+          type: 'error',
+          title: 'Código inválido',
+          message: 'El código del chip no es válido'
+        });
+        setChipVerified(false);
+      }
+    } catch (error) {
+      console.error('Error verifying chip:', error);
+      showAlert({
+        type: 'error',
+        title: 'Error',
+        message: 'No se pudo verificar el chip'
+      });
+    }
+  };
+
+  const handleChipCodeChange = async (code: string) => {
+    setChipCode(code);
+    setChipVerified(false);
+    
+    // Auto-verify if code has correct format
+    if (/^CHIP-\d{4}-\d{4}-\d{4}$/.test(code)) {
+      await handleChipCodeScanned(code);
+    }
+  };
+
   const handleNext = () => {
-    if (currentStep < 3) {
+    if (currentStep < 4) {
       setCurrentStep(currentStep + 1);
     }
   };
@@ -193,7 +254,7 @@ export const AddPetScreen: React.FC<AddPetScreenProps> = ({ navigation, route })
         sexo: data.sexo,
         fecha_nacimiento: data.fecha_nacimiento.toISOString().split('T')[0],
         color_señas: data.color_señas,
-        chip_numero: hasChip ? data.chip_numero : undefined,
+        chip_numero: hasChip && chipCode ? chipCode : undefined,
         esterilizado: data.esterilizado,
         vacunas: data.vacunas,
         alergias_condiciones: data.alergias_condiciones,
@@ -234,8 +295,23 @@ export const AddPetScreen: React.FC<AddPetScreenProps> = ({ navigation, route })
         return;
       }
 
+      // Register chip if provided
+      if (hasChip && chipVerified && chipCode) {
+        try {
+          await chipTrackingService.registerChip({
+            chipCode,
+            petId: result.data?.id || petId,
+            verificationMethod: chipCode ? 'manual' : 'scan',
+            isVerified: true
+          });
+        } catch (chipError) {
+          console.error('Error registering chip:', chipError);
+          // Don't fail the pet creation for chip registration errors
+        }
+      }
+
       // Always move to QR step on successful save
-      setCurrentStep(3); // Move to QR step
+      setCurrentStep(4); // Move to QR step
       
       Toast.show({
         type: 'success',
@@ -292,9 +368,14 @@ export const AddPetScreen: React.FC<AddPetScreenProps> = ({ navigation, route })
         <View style={[styles.progressStep, currentStep >= 3 && styles.progressStepActive]}>
           <Text style={[styles.progressStepText, currentStep >= 3 && styles.progressStepTextActive]}>3</Text>
         </View>
+        <View style={[styles.progressLine, currentStep >= 4 && styles.progressLineActive]} />
+        <View style={[styles.progressStep, currentStep >= 4 && styles.progressStepActive]}>
+          <Text style={[styles.progressStepText, currentStep >= 4 && styles.progressStepTextActive]}>4</Text>
+        </View>
       </View>
       <View style={styles.progressLabels}>
         <Text style={styles.progressLabel}>Básica</Text>
+        <Text style={styles.progressLabel}>Chip</Text>
         <Text style={styles.progressLabel}>Médica</Text>
         <Text style={styles.progressLabel}>QR</Text>
       </View>
@@ -481,39 +562,73 @@ export const AddPetScreen: React.FC<AddPetScreenProps> = ({ navigation, route })
 
   const renderStep2 = () => (
     <View style={styles.stepContainer}>
-      <Text style={styles.stepTitle}>Información Médica</Text>
+      <Text style={styles.stepTitle}>🏷️ Chip Wuauser</Text>
       
-      {/* Microchip */}
-      <View style={styles.inputContainer}>
-        <View style={styles.switchRow}>
-          <Text style={styles.label}>¿Tiene microchip?</Text>
-          <Switch
-            value={hasChip}
-            onValueChange={setHasChip}
-            trackColor={{ false: '#E0E0E0', true: Colors.primary }}
-            thumbColor={hasChip ? '#FFF' : '#FFF'}
-          />
-        </View>
+      <View style={styles.chipSection}>
+        <Text style={styles.sectionDescription}>
+          El chip Wuauser te permite rastrear la ubicación de tu mascota en tiempo real y recibir alertas si sale de zonas seguras.
+        </Text>
+        
+        <TouchableOpacity 
+          style={[styles.chipOption, hasChip === true && styles.chipOptionSelected]} 
+          onPress={() => setHasChip(true)}
+        >
+          <RadioButton selected={hasChip === true} color="#F4B740" />
+          <View style={styles.chipOptionContent}>
+            <Text style={[styles.chipOptionTitle, hasChip === true && styles.chipOptionTitleSelected]}>
+              Mi mascota tiene Chip Wuauser
+            </Text>
+            <Text style={styles.chipOptionSubtitle}>Escanearé el código del chip</Text>
+          </View>
+        </TouchableOpacity>
+        
+        <TouchableOpacity 
+          style={[styles.chipOption, hasChip === false && styles.chipOptionSelected]} 
+          onPress={() => setHasChip(false)}
+        >
+          <RadioButton selected={hasChip === false} color="#F4B740" />
+          <View style={styles.chipOptionContent}>
+            <Text style={[styles.chipOptionTitle, hasChip === false && styles.chipOptionTitleSelected]}>
+              No tiene chip aún
+            </Text>
+            <Text style={styles.chipOptionSubtitle}>Puedes agregarlo después</Text>
+          </View>
+        </TouchableOpacity>
         
         {hasChip && (
-          <Controller
-            control={control}
-            name="chip_numero"
-            render={({ field: { onChange, onBlur, value } }) => (
-              <TextInput
-                style={styles.input}
-                value={value}
-                onChangeText={onChange}
-                onBlur={onBlur}
-                placeholder="Número de microchip (15 dígitos)"
-                placeholderTextColor="#999"
-                keyboardType="numeric"
-                maxLength={15}
-              />
+          <View style={styles.scanSection}>
+            <TouchableOpacity style={styles.scanButton} onPress={handleScanChip}>
+              <Ionicons name="qr-code-outline" size={60} color="#F4B740" />
+              <Text style={styles.scanButtonText}>Escanear Chip</Text>
+            </TouchableOpacity>
+            
+            <Text style={styles.orText}>O ingresa manualmente:</Text>
+            
+            <TextInput
+              style={[styles.chipInput, chipVerified && styles.chipInputVerified]}
+              placeholder="CHIP-XXXX-XXXX-XXXX"
+              value={chipCode}
+              onChangeText={handleChipCodeChange}
+              placeholderTextColor="#999"
+              autoCapitalize="characters"
+            />
+            
+            {chipVerified && (
+              <View style={styles.successBanner}>
+                <Ionicons name="checkmark-circle" size={20} color="#4CAF50" />
+                <Text style={styles.successBannerText}>¡Chip verificado! GPS activado</Text>
+              </View>
             )}
-          />
+          </View>
         )}
       </View>
+    </View>
+  );
+
+  const renderStep3 = () => (
+    <View style={styles.stepContainer}>
+      <Text style={styles.stepTitle}>Información Médica</Text>
+      
 
       {/* Sterilized */}
       <View style={styles.inputContainer}>
@@ -526,7 +641,7 @@ export const AddPetScreen: React.FC<AddPetScreenProps> = ({ navigation, route })
               <Switch
                 value={value}
                 onValueChange={onChange}
-                trackColor={{ false: '#E0E0E0', true: Colors.primary }}
+                trackColor={{ false: '#E0E0E0', true: '#F4B740' }}
                 thumbColor={value ? '#FFF' : '#FFF'}
               />
             </View>
@@ -602,7 +717,7 @@ export const AddPetScreen: React.FC<AddPetScreenProps> = ({ navigation, route })
     </View>
   );
 
-  const renderStep3 = () => (
+  const renderStep4 = () => (
     <View style={styles.stepContainer}>
       <Text style={styles.stepTitle}>Código QR Generado</Text>
       
@@ -691,18 +806,19 @@ export const AddPetScreen: React.FC<AddPetScreenProps> = ({ navigation, route })
         {currentStep === 1 && renderStep1()}
         {currentStep === 2 && renderStep2()}
         {currentStep === 3 && renderStep3()}
+        {currentStep === 4 && renderStep4()}
       </ScrollView>
 
       {/* Footer Actions */}
       <View style={styles.footer}>
-        {currentStep < 3 ? (
+        {currentStep < 4 ? (
           <TouchableOpacity
             style={[styles.nextButton, !isValid && styles.nextButtonDisabled]}
-            onPress={currentStep === 2 ? handleSubmit(onSubmit) : handleNext}
+            onPress={currentStep === 3 ? handleSubmit(onSubmit) : handleNext}
             disabled={!isValid || isLoading}
           >
             <Text style={styles.nextButtonText}>
-              {isLoading ? 'Guardando...' : currentStep === 2 ? 'Generar QR' : 'Siguiente'}
+              {isLoading ? 'Guardando...' : currentStep === 3 ? 'Generar QR' : 'Siguiente'}
             </Text>
           </TouchableOpacity>
         ) : (
@@ -793,7 +909,7 @@ const styles = StyleSheet.create({
   progressLabels: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    width: 200,
+    width: 280,
   },
   progressLabel: {
     fontSize: 12,
@@ -1047,7 +1163,7 @@ const styles = StyleSheet.create({
     elevation: 4,
   },
   nextButton: {
-    backgroundColor: Colors.primary,
+    backgroundColor: '#F4B740',
     borderRadius: 12,
     paddingVertical: 16,
     alignItems: 'center',
@@ -1070,6 +1186,107 @@ const styles = StyleSheet.create({
     color: '#FFF',
     fontSize: 18,
     fontWeight: '600',
+  },
+  // Chip section styles
+  chipSection: {
+    marginTop: 16,
+  },
+  sectionDescription: {
+    fontSize: 14,
+    color: '#666',
+    lineHeight: 20,
+    marginBottom: 24,
+    textAlign: 'center',
+  },
+  chipOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 16,
+    borderWidth: 2,
+    borderColor: '#E0E0E0',
+    borderRadius: 12,
+    backgroundColor: '#FFF',
+    marginBottom: 12,
+  },
+  chipOptionSelected: {
+    borderColor: '#F4B740',
+    backgroundColor: '#FFF8E7',
+  },
+  chipOptionContent: {
+    flex: 1,
+    marginLeft: 12,
+  },
+  chipOptionTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#2A2A2A',
+    marginBottom: 4,
+  },
+  chipOptionTitleSelected: {
+    color: '#F4B740',
+  },
+  chipOptionSubtitle: {
+    fontSize: 14,
+    color: '#666',
+  },
+  scanSection: {
+    marginTop: 20,
+    alignItems: 'center',
+  },
+  scanButton: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 24,
+    borderWidth: 2,
+    borderColor: '#F4B740',
+    borderRadius: 12,
+    borderStyle: 'dashed',
+    backgroundColor: '#FFF8E7',
+    marginBottom: 16,
+    width: '100%',
+  },
+  scanButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#F4B740',
+    marginTop: 8,
+  },
+  orText: {
+    fontSize: 14,
+    color: '#666',
+    marginBottom: 12,
+  },
+  chipInput: {
+    backgroundColor: '#FFF',
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    fontSize: 16,
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
+    width: '100%',
+    textAlign: 'center',
+    fontFamily: 'monospace',
+  },
+  chipInputVerified: {
+    borderColor: '#4CAF50',
+    borderWidth: 2,
+  },
+  successBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#E8F5E8',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderRadius: 8,
+    marginTop: 12,
+    width: '100%',
+  },
+  successBannerText: {
+    fontSize: 14,
+    color: '#4CAF50',
+    fontWeight: '600',
+    marginLeft: 8,
   },
 });
 

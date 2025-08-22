@@ -1,9 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { View, StyleSheet, Alert, Text, TouchableOpacity } from 'react-native';
+import { View, StyleSheet, Alert, Text, TouchableOpacity, Image, Animated } from 'react-native';
 import MapView, { Marker, PROVIDER_GOOGLE, Callout } from 'react-native-maps';
 import * as Location from 'expo-location';
 import { Ionicons } from '@expo/vector-icons';
 import { veterinarianService, VeterinarianData } from '../services/veterinarianService';
+import chipTrackingService from '../services/chipTrackingService';
+import { PetLocation, MapMode } from '../types/chipTracking';
+import { colors } from '../constants/colors';
 
 interface MapScreenProps {
   navigation: any;
@@ -12,10 +15,23 @@ interface MapScreenProps {
 export const MapScreen: React.FC<MapScreenProps> = ({ navigation }) => {
   const [location, setLocation] = useState<any>(null);
   const [veterinarias, setVeterinarias] = useState<VeterinarianData[]>([]);
+  const [petsWithChip, setPetsWithChip] = useState<PetLocation[]>([]);
+  const [mapMode, setMapMode] = useState<MapMode>('Veterinarias');
+  const [pulseAnimations, setPulseAnimations] = useState<{ [key: string]: Animated.Value }>({});
 
   useEffect(() => {
     initializeMap();
-  }, []);
+    loadPetsWithChip();
+    
+    // Set up interval to update pet locations
+    const interval = setInterval(() => {
+      if (mapMode !== 'Veterinarias') {
+        loadPetsWithChip();
+      }
+    }, 30000); // Update every 30 seconds
+    
+    return () => clearInterval(interval);
+  }, [mapMode]);
 
   const initializeMap = async () => {
     try {
@@ -98,8 +114,95 @@ export const MapScreen: React.FC<MapScreenProps> = ({ navigation }) => {
     setVeterinarias(fallbackVets);
   };
 
+  const loadPetsWithChip = async () => {
+    try {
+      const pets = await chipTrackingService.getPetsWithLocation();
+      setPetsWithChip(pets);
+      
+      // Initialize pulse animations for each pet
+      const animations: { [key: string]: Animated.Value } = {};
+      pets.forEach(pet => {
+        animations[pet.petId] = new Animated.Value(1);
+        startPulseAnimation(animations[pet.petId]);
+      });
+      setPulseAnimations(animations);
+    } catch (error) {
+      console.error('Error loading pets with chip:', error);
+    }
+  };
+
+  const startPulseAnimation = (animValue: Animated.Value) => {
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(animValue, {
+          toValue: 1.5,
+          duration: 1000,
+          useNativeDriver: true,
+        }),
+        Animated.timing(animValue, {
+          toValue: 1,
+          duration: 1000,
+          useNativeDriver: true,
+        }),
+      ])
+    ).start();
+  };
+
   const handleMarkerPress = (vet: VeterinarianData) => {
     navigation.navigate('VetPublicProfile', { vetId: vet.id });
+  };
+
+  const handlePetMarkerPress = (pet: PetLocation) => {
+    Alert.alert(
+      `Ubicación de ${pet.petName}`,
+      `Última actualización: ${pet.timestamp.toLocaleTimeString()}\nBatería: ${pet.battery}%\nSeñal: ${pet.signal}`,
+      [
+        { text: 'Cerrar' },
+        { 
+          text: 'Ver Detalle', 
+          onPress: () => navigation.navigate('PetDetail', { petId: pet.petId })
+        }
+      ]
+    );
+  };
+
+  const getStatusColor = (pet: PetLocation) => {
+    const timeSinceUpdate = Date.now() - new Date(pet.timestamp).getTime();
+    
+    if (timeSinceUpdate > 60 * 60 * 1000) return '#999'; // Grey: No signal > 1 hour
+    if (timeSinceUpdate > 10 * 60 * 1000) return '#FF9800'; // Yellow: > 10 min
+    if (pet.signal === 'weak' || pet.battery < 20) return '#FF9800'; // Yellow: Weak signal or low battery
+    return '#4CAF50'; // Green: Strong signal, recent update
+  };
+
+  const renderSegmentedControl = () => {
+    const modes: MapMode[] = ['Veterinarias', 'Mis Mascotas', 'Ambos'];
+    
+    return (
+      <View style={styles.mapControls}>
+        <View style={styles.segmentedControl}>
+          {modes.map((mode, index) => (
+            <TouchableOpacity
+              key={mode}
+              style={[
+                styles.segmentButton,
+                mapMode === mode && styles.segmentButtonActive,
+                index === 0 && styles.segmentButtonFirst,
+                index === modes.length - 1 && styles.segmentButtonLast
+              ]}
+              onPress={() => setMapMode(mode)}
+            >
+              <Text style={[
+                styles.segmentButtonText,
+                mapMode === mode && styles.segmentButtonTextActive
+              ]}>
+                {mode}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+      </View>
+    );
   };
 
   const renderStars = (rating: number) => {
@@ -115,6 +218,8 @@ export const MapScreen: React.FC<MapScreenProps> = ({ navigation }) => {
 
   return (
     <View style={styles.container}>
+      {renderSegmentedControl()}
+      
       <MapView
         provider={PROVIDER_GOOGLE}
         style={styles.map}
@@ -126,7 +231,8 @@ export const MapScreen: React.FC<MapScreenProps> = ({ navigation }) => {
         }}
         showsUserLocation={true}
       >
-        {veterinarias.map(vet => (
+        {/* Veterinarian markers */}
+        {mapMode !== 'Mis Mascotas' && veterinarias.map(vet => (
           <Marker
             key={vet.id}
             coordinate={{ 
@@ -174,6 +280,38 @@ export const MapScreen: React.FC<MapScreenProps> = ({ navigation }) => {
             </Callout>
           </Marker>
         ))}
+        
+        {/* Pet markers */}
+        {mapMode !== 'Veterinarias' && petsWithChip.map(pet => (
+          <Marker
+            key={pet.petId}
+            coordinate={{
+              latitude: pet.latitude,
+              longitude: pet.longitude
+            }}
+            onPress={() => handlePetMarkerPress(pet)}
+          >
+            <View style={styles.petMarker}>
+              <View style={[
+                styles.petMarkerCircle,
+                { backgroundColor: getStatusColor(pet) }
+              ]}>
+                <Ionicons name="paw" size={16} color="white" />
+              </View>
+              {pulseAnimations[pet.petId] && (
+                <Animated.View 
+                  style={[
+                    styles.pulseAnimation,
+                    {
+                      backgroundColor: getStatusColor(pet),
+                      transform: [{ scale: pulseAnimations[pet.petId] }]
+                    }
+                  ]} 
+                />
+              )}
+            </View>
+          </Marker>
+        ))}
       </MapView>
     </View>
   );
@@ -184,7 +322,8 @@ const styles = StyleSheet.create({
     flex: 1 
   },
   map: { 
-    flex: 1 
+    flex: 1,
+    marginTop: 80,
   },
   callout: {
     minWidth: 280,
@@ -252,5 +391,74 @@ const styles = StyleSheet.create({
     color: '#F4B740',
     fontWeight: '600',
     marginRight: 2,
+  },
+  // Map controls
+  mapControls: {
+    position: 'absolute',
+    top: 60,
+    left: 20,
+    right: 20,
+    zIndex: 1,
+  },
+  segmentedControl: {
+    flexDirection: 'row',
+    backgroundColor: 'white',
+    borderRadius: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 4,
+  },
+  segmentButton: {
+    flex: 1,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    alignItems: 'center',
+    backgroundColor: 'white',
+  },
+  segmentButtonFirst: {
+    borderTopLeftRadius: 8,
+    borderBottomLeftRadius: 8,
+  },
+  segmentButtonLast: {
+    borderTopRightRadius: 8,
+    borderBottomRightRadius: 8,
+  },
+  segmentButtonActive: {
+    backgroundColor: colors.primary,
+  },
+  segmentButtonText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#666',
+  },
+  segmentButtonTextActive: {
+    color: 'white',
+  },
+  // Pet marker styles
+  petMarker: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    width: 40,
+    height: 40,
+  },
+  petMarkerCircle: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 2,
+    borderColor: 'white',
+    zIndex: 2,
+  },
+  pulseAnimation: {
+    position: 'absolute',
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    opacity: 0.3,
+    zIndex: 1,
   },
 });
