@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, TouchableOpacity, Alert } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import * as Linking from 'expo-linking';
 import { authService } from '../services/supabase';
-import { colors } from '../constants/colors';
+import { Colors } from '../constants/colors';
 
 export const EmailConfirmScreen: React.FC = () => {
   const navigation = useNavigation();
@@ -108,7 +108,7 @@ export const EmailConfirmScreen: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.background,
+    backgroundColor: Colors.background,
     justifyContent: 'center',
     alignItems: 'center',
     padding: 20,
@@ -128,19 +128,19 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: colors.text,
+    color: Colors.text,
     textAlign: 'center',
     marginBottom: 16,
   },
   subtitle: {
     fontSize: 16,
-    color: colors.textSecondary,
+    color: Colors.textSecondary,
     textAlign: 'center',
     lineHeight: 24,
     marginBottom: 32,
   },
   button: {
-    backgroundColor: colors.primary,
+    backgroundColor: Colors.primary,
     paddingHorizontal: 32,
     paddingVertical: 16,
     borderRadius: 8,
@@ -148,7 +148,7 @@ const styles = StyleSheet.create({
     minWidth: 200,
   },
   buttonText: {
-    color: colors.white,
+    color: Colors.white,
     fontSize: 16,
     fontWeight: '600',
     textAlign: 'center',
@@ -156,9 +156,9 @@ const styles = StyleSheet.create({
   secondaryButton: {
     backgroundColor: 'transparent',
     borderWidth: 1,
-    borderColor: colors.primary,
+    borderColor: Colors.primary,
   },
   secondaryButtonText: {
-    color: colors.primary,
+    color: Colors.primary,
   },
 });

@@ -7,7 +7,7 @@ import {
   ScrollView,
 } from 'react-native';
 import { Logo } from '../components/Logo';
-import { colors } from '../constants/colors';
+import { Colors } from '../constants/colors';
 import type { TipoUsuario } from '../types';
 
 interface UserTypeSelectionScreenProps {
@@ -73,7 +73,7 @@ export const UserTypeSelectionScreen: React.FC<UserTypeSelectionScreenProps> = (
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.background,
+    backgroundColor: Colors.background,
   },
   content: {
     flex: 1,
@@ -87,13 +87,13 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 24,
     fontWeight: '700',
-    color: colors.text,
+    color: Colors.text,
     marginTop: 24,
     textAlign: 'center',
   },
   subtitle: {
     fontSize: 16,
-    color: colors.textSecondary,
+    color: Colors.textSecondary,
     marginTop: 12,
     textAlign: 'center',
   },
@@ -102,21 +102,21 @@ const styles = StyleSheet.create({
     gap: 16,
   },
   optionCard: {
-    backgroundColor: colors.surface,
+    backgroundColor: Colors.surface,
     borderRadius: 16,
     padding: 24,
     borderWidth: 2,
-    borderColor: colors.border,
+    borderColor: Colors.border,
   },
   optionTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: colors.text,
+    color: Colors.text,
     marginBottom: 8,
   },
   optionDescription: {
     fontSize: 14,
-    color: colors.textSecondary,
+    color: Colors.textSecondary,
     lineHeight: 20,
   },
   guestOption: {
@@ -126,7 +126,7 @@ const styles = StyleSheet.create({
   },
   guestText: {
     fontSize: 16,
-    color: colors.primary,
+    color: Colors.primary,
     fontWeight: '600',
   },
   footer: {
@@ -137,11 +137,11 @@ const styles = StyleSheet.create({
   },
   footerText: {
     fontSize: 14,
-    color: colors.textSecondary,
+    color: Colors.textSecondary,
   },
   loginLink: {
     fontSize: 14,
-    color: colors.primary,
+    color: Colors.primary,
     fontWeight: '600',
   },
 });

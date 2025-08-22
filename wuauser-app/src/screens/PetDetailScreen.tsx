@@ -16,8 +16,10 @@ import { LinearGradient } from 'expo-linear-gradient';
 import * as MediaLibrary from 'expo-media-library';
 import * as FileSystem from 'expo-file-system';
 import ViewShot from 'react-native-view-shot';
-import { colors } from '../constants/colors';
+import { Colors } from '../constants/colors';
 import { petService, PetData, VaccinationRecord, MedicalRecord } from '../services/petService';
+import medicalRecordService from '../services/medicalRecordService';
+import { MedicalRecordStats, MedicalRecordSummary } from '../types/medicalRecord';
 
 const { width } = Dimensions.get('window');
 
@@ -41,6 +43,10 @@ export const PetDetailScreen: React.FC<PetDetailScreenProps> = ({ navigation, ro
   const [vaccinations, setVaccinations] = useState<VaccinationRecord[]>([]);
   const [medicalRecords, setMedicalRecords] = useState<MedicalRecord[]>([]);
   const [qrRef, setQrRef] = useState<ViewShot | null>(null);
+  
+  // New medical record system
+  const [medicalStats, setMedicalStats] = useState<MedicalRecordStats | null>(null);
+  const [recentRecords, setRecentRecords] = useState<MedicalRecordSummary[]>([]);
 
   useEffect(() => {
     if (!initialPetData) {
@@ -66,6 +72,19 @@ export const PetDetailScreen: React.FC<PetDetailScreenProps> = ({ navigation, ro
 
   const loadMedicalData = async () => {
     try {
+      // Initialize new medical record service
+      await medicalRecordService.initialize();
+      
+      // Load medical stats and recent records from new system
+      const [stats, summaries] = await Promise.all([
+        medicalRecordService.getRecordStats(petId),
+        medicalRecordService.getRecordSummaries(petId, 3) // Last 3 records
+      ]);
+      
+      setMedicalStats(stats);
+      setRecentRecords(summaries);
+      
+      // Load old system data for compatibility
       const [vaccinationResult, medicalResult] = await Promise.all([
         petService.getPetVaccinations(petId),
         petService.getPetMedicalRecords(petId)
@@ -159,7 +178,7 @@ export const PetDetailScreen: React.FC<PetDetailScreenProps> = ({ navigation, ro
         <Ionicons 
           name="information-circle-outline" 
           size={20} 
-          color={activeTab === 'info' ? colors.primary : '#666'} 
+          color={activeTab === 'info' ? Colors.primary : '#666'} 
         />
         <Text style={[styles.tabText, activeTab === 'info' && styles.activeTabText]}>
           Info
@@ -173,7 +192,7 @@ export const PetDetailScreen: React.FC<PetDetailScreenProps> = ({ navigation, ro
         <Ionicons 
           name="qr-code-outline" 
           size={20} 
-          color={activeTab === 'qr' ? colors.primary : '#666'} 
+          color={activeTab === 'qr' ? Colors.primary : '#666'} 
         />
         <Text style={[styles.tabText, activeTab === 'qr' && styles.activeTabText]}>
           QR
@@ -187,7 +206,7 @@ export const PetDetailScreen: React.FC<PetDetailScreenProps> = ({ navigation, ro
         <Ionicons 
           name="medical-outline" 
           size={20} 
-          color={activeTab === 'medical' ? colors.primary : '#666'} 
+          color={activeTab === 'medical' ? Colors.primary : '#666'} 
         />
         <Text style={[styles.tabText, activeTab === 'medical' && styles.activeTabText]}>
           Médico
@@ -201,7 +220,7 @@ export const PetDetailScreen: React.FC<PetDetailScreenProps> = ({ navigation, ro
         <Ionicons 
           name="images-outline" 
           size={20} 
-          color={activeTab === 'gallery' ? colors.primary : '#666'} 
+          color={activeTab === 'gallery' ? Colors.primary : '#666'} 
         />
         <Text style={[styles.tabText, activeTab === 'gallery' && styles.activeTabText]}>
           Galería
@@ -214,7 +233,7 @@ export const PetDetailScreen: React.FC<PetDetailScreenProps> = ({ navigation, ro
     <View style={styles.tabContent}>
       <View style={styles.infoCard}>
         <View style={styles.infoRow}>
-          <Ionicons name="paw" size={20} color={colors.primary} />
+          <Ionicons name="paw" size={20} color={Colors.primary} />
           <View style={styles.infoTextContainer}>
             <Text style={styles.infoLabel}>Especie</Text>
             <Text style={styles.infoValue}>{petData?.especie}</Text>
@@ -223,7 +242,7 @@ export const PetDetailScreen: React.FC<PetDetailScreenProps> = ({ navigation, ro
 
         {petData?.raza && (
           <View style={styles.infoRow}>
-            <Ionicons name="library-outline" size={20} color={colors.primary} />
+            <Ionicons name="library-outline" size={20} color={Colors.primary} />
             <View style={styles.infoTextContainer}>
               <Text style={styles.infoLabel}>Raza</Text>
               <Text style={styles.infoValue}>{petData.raza}</Text>
@@ -232,7 +251,7 @@ export const PetDetailScreen: React.FC<PetDetailScreenProps> = ({ navigation, ro
         )}
 
         <View style={styles.infoRow}>
-          <Ionicons name={petData?.sexo === 'Macho' ? 'male' : 'female'} size={20} color={colors.primary} />
+          <Ionicons name={petData?.sexo === 'Macho' ? 'male' : 'female'} size={20} color={Colors.primary} />
           <View style={styles.infoTextContainer}>
             <Text style={styles.infoLabel}>Sexo</Text>
             <Text style={styles.infoValue}>{petData?.sexo}</Text>
@@ -240,7 +259,7 @@ export const PetDetailScreen: React.FC<PetDetailScreenProps> = ({ navigation, ro
         </View>
 
         <View style={styles.infoRow}>
-          <Ionicons name="calendar" size={20} color={colors.primary} />
+          <Ionicons name="calendar" size={20} color={Colors.primary} />
           <View style={styles.infoTextContainer}>
             <Text style={styles.infoLabel}>Edad</Text>
             <Text style={styles.infoValue}>
@@ -251,7 +270,7 @@ export const PetDetailScreen: React.FC<PetDetailScreenProps> = ({ navigation, ro
 
         {petData?.color_señas && (
           <View style={styles.infoRow}>
-            <Ionicons name="color-palette" size={20} color={colors.primary} />
+            <Ionicons name="color-palette" size={20} color={Colors.primary} />
             <View style={styles.infoTextContainer}>
               <Text style={styles.infoLabel}>Color y señas</Text>
               <Text style={styles.infoValue}>{petData.color_señas}</Text>
@@ -261,7 +280,7 @@ export const PetDetailScreen: React.FC<PetDetailScreenProps> = ({ navigation, ro
 
         {petData?.chip_numero && (
           <View style={styles.infoRow}>
-            <Ionicons name="radio" size={20} color={colors.primary} />
+            <Ionicons name="radio" size={20} color={Colors.primary} />
             <View style={styles.infoTextContainer}>
               <Text style={styles.infoLabel}>Microchip</Text>
               <Text style={styles.infoValue}>{petData.chip_numero}</Text>
@@ -270,7 +289,7 @@ export const PetDetailScreen: React.FC<PetDetailScreenProps> = ({ navigation, ro
         )}
 
         <View style={styles.infoRow}>
-          <Ionicons name="medical" size={20} color={colors.primary} />
+          <Ionicons name="medical" size={20} color={Colors.primary} />
           <View style={styles.infoTextContainer}>
             <Text style={styles.infoLabel}>Esterilizado</Text>
             <Text style={styles.infoValue}>{petData?.esterilizado ? 'Sí' : 'No'}</Text>
@@ -289,7 +308,7 @@ export const PetDetailScreen: React.FC<PetDetailScreenProps> = ({ navigation, ro
 
         {petData?.veterinario_cabecera && (
           <View style={styles.infoRow}>
-            <Ionicons name="person-circle" size={20} color={colors.primary} />
+            <Ionicons name="person-circle" size={20} color={Colors.primary} />
             <View style={styles.infoTextContainer}>
               <Text style={styles.infoLabel}>Veterinario</Text>
               <Text style={styles.infoValue}>{petData.veterinario_cabecera}</Text>
@@ -388,16 +407,98 @@ export const PetDetailScreen: React.FC<PetDetailScreenProps> = ({ navigation, ro
     </View>
   );
 
+  const handleViewMedicalRecord = () => {
+    navigation.navigate('MedicalRecord', {
+      petId,
+      petName: petData?.nombre || 'Mascota',
+      petAge: petData?.fecha_nacimiento ? calculateAge(petData.fecha_nacimiento) : undefined,
+      petBreed: petData?.raza,
+      chipId: petData?.chip_numero
+    });
+  };
+
+  const formatRecordDate = (date: Date) => {
+    return date.toLocaleDateString('es-ES', {
+      day: 'numeric',
+      month: 'short',
+      year: 'numeric'
+    });
+  };
+
+  const getRecordTypeColor = (type: string) => {
+    const colors = {
+      consulta: '#2196F3',
+      vacuna: '#4CAF50',
+      cirugia: '#FF9800',
+      emergencia: '#F44336',
+      laboratorio: '#9C27B0',
+      revision: '#00BCD4'
+    };
+    return colors[type as keyof typeof colors] || '#757575';
+  };
+
   const renderMedicalTab = () => (
     <View style={styles.tabContent}>
       <Text style={styles.tabTitle}>Historial Médico</Text>
+      
+      {/* New Medical Record System Card */}
+      <TouchableOpacity style={styles.medicalRecordCard} onPress={handleViewMedicalRecord}>
+        <View style={styles.medicalRecordHeader}>
+          <View style={styles.medicalRecordTitle}>
+            <Ionicons name="document-text" size={24} color="#2196F3" />
+            <Text style={styles.medicalRecordTitleText}>Expediente Médico Completo</Text>
+          </View>
+          <View style={styles.medicalRecordBadge}>
+            <Text style={styles.medicalRecordBadgeText}>
+              {medicalStats?.totalRecords || 0} registros
+            </Text>
+          </View>
+        </View>
+        
+        {medicalStats && (
+          <View style={styles.medicalStatsRow}>
+            <View style={styles.medicalStatItem}>
+              <Text style={styles.medicalStatNumber}>{medicalStats.pendingPrescriptions}</Text>
+              <Text style={styles.medicalStatLabel}>Medicamentos</Text>
+            </View>
+            <View style={styles.medicalStatItem}>
+              <Text style={styles.medicalStatNumber}>{medicalStats.upcomingVaccines}</Text>
+              <Text style={styles.medicalStatLabel}>Vacunas pendientes</Text>
+            </View>
+            <View style={styles.medicalStatItem}>
+              <Text style={styles.medicalStatNumber}>
+                {medicalStats.lastVisit ? formatRecordDate(medicalStats.lastVisit).split(' ')[0] : '--'}
+              </Text>
+              <Text style={styles.medicalStatLabel}>Última visita</Text>
+            </View>
+          </View>
+        )}
+        
+        {recentRecords.length > 0 && (
+          <View style={styles.recentRecordsSection}>
+            <Text style={styles.recentRecordsTitle}>Registros recientes:</Text>
+            {recentRecords.slice(0, 2).map((record) => (
+              <View key={record.id} style={styles.recentRecordItem}>
+                <View style={[styles.recordTypeDot, { backgroundColor: getRecordTypeColor(record.type) }]} />
+                <Text style={styles.recentRecordText}>
+                  {formatRecordDate(record.date)} - {record.diagnosis}
+                </Text>
+              </View>
+            ))}
+          </View>
+        )}
+        
+        <View style={styles.medicalRecordFooter}>
+          <Text style={styles.viewCompleteText}>Ver expediente completo →</Text>
+        </View>
+      </TouchableOpacity>
       
       {/* Vaccinations Section */}
       <View style={styles.medicalSection}>
         <View style={styles.sectionHeader}>
           <Text style={styles.sectionTitle}>Vacunas</Text>
           <TouchableOpacity style={styles.addButton}>
-            <Ionicons name="add" size={16} color={colors.primary} />
+            <Ionicons name="add" size={16} color={Colors.primary} />
           </TouchableOpacity>
         </View>
 
@@ -433,7 +534,7 @@ export const PetDetailScreen: React.FC<PetDetailScreenProps> = ({ navigation, ro
         <View style={styles.sectionHeader}>
           <Text style={styles.sectionTitle}>Consultas Veterinarias</Text>
           <TouchableOpacity style={styles.addButton}>
-            <Ionicons name="add" size={16} color={colors.primary} />
+            <Ionicons name="add" size={16} color={Colors.primary} />
           </TouchableOpacity>
         </View>
 
@@ -610,7 +711,7 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   retryButton: {
-    backgroundColor: colors.primary,
+    backgroundColor: Colors.primary,
     paddingHorizontal: 24,
     paddingVertical: 12,
     borderRadius: 8,
@@ -684,7 +785,7 @@ const styles = StyleSheet.create({
     borderBottomColor: 'transparent',
   },
   activeTab: {
-    borderBottomColor: colors.primary,
+    borderBottomColor: Colors.primary,
   },
   tabText: {
     fontSize: 11,
@@ -693,7 +794,7 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   activeTabText: {
-    color: colors.primary,
+    color: Colors.primary,
     fontWeight: '600',
   },
   content: {
@@ -990,6 +1091,108 @@ const styles = StyleSheet.create({
     borderRadius: 28,
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  // New Medical Record Card Styles
+  medicalRecordCard: {
+    backgroundColor: '#FFF',
+    borderRadius: 16,
+    padding: 20,
+    marginBottom: 20,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 4,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 6,
+    borderWidth: 1,
+    borderColor: 'rgba(33, 150, 243, 0.1)',
+  },
+  medicalRecordHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  medicalRecordTitle: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  medicalRecordTitleText: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#2A2A2A',
+  },
+  medicalRecordBadge: {
+    backgroundColor: '#E3F2FD',
+    borderRadius: 20,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+  },
+  medicalRecordBadgeText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#2196F3',
+  },
+  medicalStatsRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 16,
+    paddingVertical: 12,
+    backgroundColor: '#F8F9FA',
+    borderRadius: 12,
+    paddingHorizontal: 16,
+  },
+  medicalStatItem: {
+    alignItems: 'center',
+  },
+  medicalStatNumber: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#2196F3',
+    marginBottom: 4,
+  },
+  medicalStatLabel: {
+    fontSize: 11,
+    color: '#666',
+    textAlign: 'center',
+  },
+  recentRecordsSection: {
+    marginBottom: 12,
+  },
+  recentRecordsTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#4A4A4A',
+    marginBottom: 8,
+  },
+  recentRecordItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 6,
+    paddingLeft: 8,
+  },
+  recordTypeDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    marginRight: 12,
+  },
+  recentRecordText: {
+    fontSize: 13,
+    color: '#666',
+    flex: 1,
+  },
+  medicalRecordFooter: {
+    alignItems: 'flex-end',
+    marginTop: 8,
+  },
+  viewCompleteText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#2196F3',
   },
 });
 

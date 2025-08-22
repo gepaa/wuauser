@@ -16,7 +16,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useForm, Controller } from 'react-hook-form';
 import * as SecureStore from 'expo-secure-store';
-import { colors } from '../constants/colors';
+import { Colors } from '../constants/colors';
 import { petService, PetData } from '../services/petService';
 import { authService } from '../services/supabase';
 import { CustomAlert, AlertType } from '../components/CustomAlert';
@@ -447,7 +447,7 @@ export const AddPetScreen: React.FC<AddPetScreenProps> = ({ navigation, route })
               Selector de fecha no disponible temporalmente
             </Text>
             <TouchableOpacity 
-              style={{ marginTop: 10, backgroundColor: colors.primary, padding: 10, borderRadius: 5 }}
+              style={{ marginTop: 10, backgroundColor: Colors.primary, padding: 10, borderRadius: 5 }}
               onPress={() => setShowDatePicker(false)}
             >
               <Text style={{ color: 'white', textAlign: 'center' }}>Cerrar</Text>
@@ -490,7 +490,7 @@ export const AddPetScreen: React.FC<AddPetScreenProps> = ({ navigation, route })
           <Switch
             value={hasChip}
             onValueChange={setHasChip}
-            trackColor={{ false: '#E0E0E0', true: colors.primary }}
+            trackColor={{ false: '#E0E0E0', true: Colors.primary }}
             thumbColor={hasChip ? '#FFF' : '#FFF'}
           />
         </View>
@@ -526,7 +526,7 @@ export const AddPetScreen: React.FC<AddPetScreenProps> = ({ navigation, route })
               <Switch
                 value={value}
                 onValueChange={onChange}
-                trackColor={{ false: '#E0E0E0', true: colors.primary }}
+                trackColor={{ false: '#E0E0E0', true: Colors.primary }}
                 thumbColor={value ? '#FFF' : '#FFF'}
               />
             </View>
@@ -612,8 +612,8 @@ export const AddPetScreen: React.FC<AddPetScreenProps> = ({ navigation, route })
             <QRCode
               value={generatedQR}
               size={200}
-              color={colors.text}
-              backgroundColor={colors.white}
+              color={Colors.text}
+              backgroundColor={Colors.white}
             />
           </View>
         ) : (
@@ -857,7 +857,7 @@ const styles = StyleSheet.create({
     borderColor: '#E0E0E0',
   },
   inputError: {
-    borderColor: colors.error,
+    borderColor: Colors.error,
     borderWidth: 2,
   },
   textArea: {
@@ -865,7 +865,7 @@ const styles = StyleSheet.create({
     textAlignVertical: 'top',
   },
   errorText: {
-    color: colors.error,
+    color: Colors.error,
     fontSize: 12,
     marginTop: 4,
   },
@@ -1047,7 +1047,7 @@ const styles = StyleSheet.create({
     elevation: 4,
   },
   nextButton: {
-    backgroundColor: colors.primary,
+    backgroundColor: Colors.primary,
     borderRadius: 12,
     paddingVertical: 16,
     alignItems: 'center',

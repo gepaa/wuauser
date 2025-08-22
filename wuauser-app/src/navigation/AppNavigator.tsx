@@ -10,12 +10,18 @@ import { RegisterVeterinarioScreen } from '../screens/RegisterVeterinarioScreen'
 import { LoginScreen } from '../screens/LoginScreen';
 import { QRScannerScreen } from '../screens/QRScannerScreen';
 import { VetDashboardScreen } from '../screens/VetDashboardScreen';
+import { VetClinicSetupScreen } from '../screens/VetClinicSetupScreen';
+import { VetPublicProfileScreen } from '../screens/VetPublicProfileScreen';
+import { BookAppointmentScreen } from '../screens/BookAppointmentScreen';
+import { VetAppointmentsScreen } from '../screens/VetAppointmentsScreen';
 import { AddPetScreen } from '../screens/AddPetScreen';
 import { PetDetailScreen } from '../screens/PetDetailScreen';
 import { VetDetailScreen } from '../screens/VetDetailScreen';
 import { EditProfileScreen } from '../screens/EditProfileScreen';
 import { EmailConfirmScreen } from '../screens/EmailConfirmScreen';
 import { HomeScreen } from '../screens/HomeScreen';
+import { MedicalRecordScreen } from '../screens/MedicalRecordScreen';
+import { AddMedicalRecordScreen } from '../screens/AddMedicalRecordScreen';
 import { TabNavigator } from './TabNavigator';
 
 const Stack = createStackNavigator();
@@ -60,11 +66,17 @@ const AppContent: React.FC = () => {
       <Stack.Screen name="EmailConfirm" component={EmailConfirmScreen} />
       <Stack.Screen name="HomeScreen" component={TabNavigator} />
       <Stack.Screen name="VetDashboard" component={VetDashboardScreen} />
+      <Stack.Screen name="VetClinicSetup" component={VetClinicSetupScreen} />
+      <Stack.Screen name="VetPublicProfile" component={VetPublicProfileScreen} />
+      <Stack.Screen name="BookAppointment" component={BookAppointmentScreen} />
+      <Stack.Screen name="VetAppointments" component={VetAppointmentsScreen} />
       <Stack.Screen name="QRScanner" component={QRScannerScreen} />
       <Stack.Screen name="AddPet" component={AddPetScreen} />
       <Stack.Screen name="PetDetail" component={PetDetailScreen} />
       <Stack.Screen name="VetDetail" component={VetDetailScreen} />
       <Stack.Screen name="EditProfile" component={EditProfileScreen} />
+      <Stack.Screen name="MedicalRecord" component={MedicalRecordScreen} />
+      <Stack.Screen name="AddMedicalRecord" component={AddMedicalRecordScreen} />
     </Stack.Navigator>
   );
 };

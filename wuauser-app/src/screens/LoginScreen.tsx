@@ -7,7 +7,7 @@ import { useForm, Controller } from 'react-hook-form';
 import * as SecureStore from 'expo-secure-store';
 import Toast from 'react-native-toast-message';
 import { WuauserLogo } from '../components/WuauserLogo';
-import { colors } from '../constants/colors';
+import { Colors } from '../constants/colors';
 import { authService, dbService, supabase } from '../services/supabase';
 import { useCustomAlert } from '../components/CustomAlert';
 import { useAuth } from '../contexts/AuthContext';
@@ -372,7 +372,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
                     </View>
                     {errors.email && (
                       <View style={styles.errorContainer}>
-                        <Ionicons name="alert-circle" size={16} color={colors.error} />
+                        <Ionicons name="alert-circle" size={16} color={Colors.error} />
                         <Text style={styles.errorText}>{errors.email.message}</Text>
                       </View>
                     )}
@@ -412,6 +412,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
                       <TouchableOpacity
                         style={styles.eyeButton}
                         onPress={() => setShowPassword(!showPassword)}
+                        activeOpacity={0.7}
                       >
                         <Ionicons 
                           name={showPassword ? 'eye-off' : 'eye'} 
@@ -422,7 +423,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
                     </View>
                     {errors.password && (
                       <View style={styles.errorContainer}>
-                        <Ionicons name="alert-circle" size={16} color={colors.error} />
+                        <Ionicons name="alert-circle" size={16} color={Colors.error} />
                         <Text style={styles.errorText}>{errors.password.message}</Text>
                       </View>
                     )}
@@ -434,6 +435,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
             <TouchableOpacity
               style={styles.forgotPasswordLink}
               onPress={handleForgotPassword}
+              activeOpacity={0.7}
             >
               <Text style={styles.forgotPasswordText}>
                 ¿Olvidaste tu contraseña?
@@ -447,6 +449,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
               ]}
               onPress={handleSubmit(handleLogin)}
               disabled={isLoading || !isValid}
+              activeOpacity={0.8}
             >
               <Text style={styles.loginButtonText}>
                 {isLoading ? 'Iniciando sesión...' : 'Iniciar Sesión'}
@@ -462,6 +465,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
             <TouchableOpacity
               style={styles.guestButton}
               onPress={handleGuestLogin}
+              activeOpacity={0.8}
             >
               <Ionicons name="qr-code-outline" size={20} color="#6A6A6A" />
               <Text style={styles.guestButtonText}>
@@ -566,7 +570,7 @@ const styles = StyleSheet.create({
   },
   header: {
     paddingTop: 40,
-    paddingHorizontal: 20,
+    paddingHorizontal: 16,
     paddingBottom: 40,
     alignItems: 'center',
   },
@@ -584,7 +588,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   form: {
-    paddingHorizontal: 20,
+    paddingHorizontal: 16,
     paddingBottom: 40,
   },
   inputContainer: {
@@ -640,7 +644,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
   },
   inputError: {
-    borderColor: colors.error,
+    borderColor: Colors.error,
     borderWidth: 2,
   },
   errorContainer: {
@@ -650,7 +654,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 4,
   },
   errorText: {
-    color: colors.error,
+    color: Colors.error,
     fontSize: 12,
     marginLeft: 4,
     flex: 1,
@@ -761,11 +765,11 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
     justifyContent: 'center',
     alignItems: 'center',
-    paddingHorizontal: 20,
+    paddingHorizontal: 16,
   },
   modalContent: {
     backgroundColor: '#FFF',
-    borderRadius: 20,
+    borderRadius: 12,
     padding: 24,
     width: '100%',
     maxWidth: 400,

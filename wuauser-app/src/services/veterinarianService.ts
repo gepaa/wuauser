@@ -1,5 +1,6 @@
 import { supabase } from './supabase';
 import * as Location from 'expo-location';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export interface VeterinarianLocation {
   latitude: number;
@@ -771,6 +772,156 @@ export const veterinarianService = {
   clearSearchHistory(): void {
     // In a real app, this would clear AsyncStorage
     console.log('Clearing search history');
+  },
+
+  // Clinic Information Management
+  async saveClinicInfo(clinicInfo: any): Promise<void> {
+    try {
+      const clinicData = {
+        ...clinicInfo,
+        lastUpdated: new Date().toISOString()
+      };
+      
+      await AsyncStorage.setItem('clinic_info', JSON.stringify(clinicData));
+      console.log('✅ Clinic info saved successfully');
+    } catch (error) {
+      console.error('Error saving clinic info:', error);
+      throw new Error('No se pudo guardar la información de la clínica');
+    }
+  },
+
+  async getClinicInfo(): Promise<any | null> {
+    try {
+      const clinicData = await AsyncStorage.getItem('clinic_info');
+      
+      if (clinicData) {
+        const parsedData = JSON.parse(clinicData);
+        console.log('📋 Clinic info loaded from storage');
+        return parsedData;
+      }
+      
+      // Return mock data if no saved data exists
+      const mockClinicInfo = {
+        nombre: 'Veterinaria San José',
+        direccion: 'Av. Principal 123, Col. Centro',
+        telefono: '5512345678',
+        email: 'info@veterinariasanjose.com',
+        servicios: [
+          {
+            id: '1',
+            nombre: 'Consulta General',
+            precio: '350',
+            categoria: 'consulta'
+          },
+          {
+            id: '2',
+            nombre: 'Vacunación',
+            precio: '250',
+            categoria: 'consulta'
+          },
+          {
+            id: '3',
+            nombre: 'Desparasitación',
+            precio: '200',
+            categoria: 'consulta'
+          }
+        ],
+        horarios: [
+          { dia: 'Lunes', abierto: true, horaApertura: '09:00', horaCierre: '18:00' },
+          { dia: 'Martes', abierto: true, horaApertura: '09:00', horaCierre: '18:00' },
+          { dia: 'Miércoles', abierto: true, horaApertura: '09:00', horaCierre: '18:00' },
+          { dia: 'Jueves', abierto: true, horaApertura: '09:00', horaCierre: '18:00' },
+          { dia: 'Viernes', abierto: true, horaApertura: '09:00', horaCierre: '18:00' },
+          { dia: 'Sábado', abierto: true, horaApertura: '10:00', horaCierre: '15:00' },
+          { dia: 'Domingo', abierto: false, horaApertura: '10:00', horaCierre: '14:00' }
+        ],
+        lastUpdated: new Date().toISOString()
+      };
+      
+      console.log('🎭 Using mock clinic info');
+      return mockClinicInfo;
+    } catch (error) {
+      console.error('Error loading clinic info:', error);
+      return null;
+    }
+  },
+
+  async clearClinicInfo(): Promise<void> {
+    try {
+      await AsyncStorage.removeItem('clinic_info');
+      console.log('🗑️ Clinic info cleared');
+    } catch (error) {
+      console.error('Error clearing clinic info:', error);
+      throw new Error('No se pudo limpiar la información de la clínica');
+    }
+  },
+
+  async updateClinicService(serviceId: string, updates: Partial<any>): Promise<void> {
+    try {
+      const clinicInfo = await this.getClinicInfo();
+      if (!clinicInfo) throw new Error('No clinic info found');
+
+      const updatedServicios = clinicInfo.servicios.map((service: any) =>
+        service.id === serviceId ? { ...service, ...updates } : service
+      );
+
+      const updatedClinicInfo = {
+        ...clinicInfo,
+        servicios: updatedServicios,
+        lastUpdated: new Date().toISOString()
+      };
+
+      await this.saveClinicInfo(updatedClinicInfo);
+      console.log('✅ Service updated successfully');
+    } catch (error) {
+      console.error('Error updating service:', error);
+      throw new Error('No se pudo actualizar el servicio');
+    }
+  },
+
+  async addClinicService(service: any): Promise<void> {
+    try {
+      const clinicInfo = await this.getClinicInfo();
+      if (!clinicInfo) throw new Error('No clinic info found');
+
+      const newService = {
+        ...service,
+        id: Date.now().toString()
+      };
+
+      const updatedClinicInfo = {
+        ...clinicInfo,
+        servicios: [...clinicInfo.servicios, newService],
+        lastUpdated: new Date().toISOString()
+      };
+
+      await this.saveClinicInfo(updatedClinicInfo);
+      console.log('✅ Service added successfully');
+    } catch (error) {
+      console.error('Error adding service:', error);
+      throw new Error('No se pudo agregar el servicio');
+    }
+  },
+
+  async removeClinicService(serviceId: string): Promise<void> {
+    try {
+      const clinicInfo = await this.getClinicInfo();
+      if (!clinicInfo) throw new Error('No clinic info found');
+
+      const updatedServicios = clinicInfo.servicios.filter((service: any) => service.id !== serviceId);
+
+      const updatedClinicInfo = {
+        ...clinicInfo,
+        servicios: updatedServicios,
+        lastUpdated: new Date().toISOString()
+      };
+
+      await this.saveClinicInfo(updatedClinicInfo);
+      console.log('✅ Service removed successfully');
+    } catch (error) {
+      console.error('Error removing service:', error);
+      throw new Error('No se pudo eliminar el servicio');
+    }
   }
 };
 

@@ -5,7 +5,7 @@ import { useForm, Controller } from 'react-hook-form';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { colors } from '../constants/colors';
+import { Colors } from '../constants/colors';
 import { authService, dbService, supabase } from '../services/supabase';
 
 interface RegisterDuenoScreenProps {
@@ -122,7 +122,11 @@ export const RegisterDuenoScreen: React.FC<RegisterDuenoScreenProps> = ({
                   keyboardType={keyboardType}
                   autoCapitalize={autoCapitalize}
                 />
-                <TouchableOpacity style={styles.eyeButton} onPress={onTogglePassword}>
+                <TouchableOpacity 
+                  style={styles.eyeButton} 
+                  onPress={onTogglePassword}
+                  activeOpacity={0.7}
+                >
                   <Ionicons 
                     name={localShowPassword ? 'eye-off' : 'eye'} 
                     size={24} 
@@ -145,7 +149,7 @@ export const RegisterDuenoScreen: React.FC<RegisterDuenoScreenProps> = ({
             )}
             {errors[name] && (
               <View style={styles.errorContainer}>
-                <Ionicons name="alert-circle" size={16} color={colors.error} />
+                <Ionicons name="alert-circle" size={16} color={Colors.error} />
                 <Text style={styles.errorText}>{errors[name]?.message}</Text>
               </View>
             )}
@@ -356,6 +360,7 @@ export const RegisterDuenoScreen: React.FC<RegisterDuenoScreenProps> = ({
               ]}
               onPress={handleSubmit(handleRegister)}
               disabled={isLoading || !isValid}
+              activeOpacity={0.8}
             >
               <Text style={styles.registerButtonText}>
                 {isLoading ? 'Creando cuenta...' : 'Registrarse'}
@@ -365,6 +370,7 @@ export const RegisterDuenoScreen: React.FC<RegisterDuenoScreenProps> = ({
             <TouchableOpacity
               style={styles.loginLink}
               onPress={() => navigation.navigate('Login')}
+              activeOpacity={0.7}
             >
               <Text style={styles.loginLinkText}>
                 ¿Ya tienes cuenta? Inicia sesión
@@ -394,7 +400,7 @@ const styles = StyleSheet.create({
   },
   header: {
     paddingTop: 10,
-    paddingHorizontal: 20,
+    paddingHorizontal: 16,
     paddingBottom: 30,
     alignItems: 'center',
   },
@@ -412,7 +418,7 @@ const styles = StyleSheet.create({
     lineHeight: 22,
   },
   form: {
-    paddingHorizontal: 20,
+    paddingHorizontal: 16,
     paddingBottom: 40,
   },
   inputContainer: {
@@ -468,7 +474,7 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
   },
   inputError: {
-    borderColor: colors.error,
+    borderColor: Colors.error,
     borderWidth: 2,
   },
   errorContainer: {
@@ -478,7 +484,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 4,
   },
   errorText: {
-    color: colors.error,
+    color: Colors.error,
     fontSize: 12,
     marginLeft: 4,
     flex: 1,

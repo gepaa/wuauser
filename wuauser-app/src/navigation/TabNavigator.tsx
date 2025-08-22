@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
 import { Platform } from 'react-native';
@@ -7,29 +7,64 @@ import { HomeScreen } from '../screens/HomeScreen';
 import { MyPetsScreen } from '../screens/MyPetsScreen';
 import { MapScreen } from '../screens/MapScreen';
 import { ProfileScreen } from '../screens/ProfileScreen';
+import { VetDashboardScreen } from '../screens/VetDashboardScreen';
+import { VetAppointmentsScreen } from '../screens/VetAppointmentsScreen';
+import roleService, { UserRole } from '../services/roleService';
 
 const Tab = createBottomTabNavigator();
 
 export const TabNavigator: React.FC = () => {
+  const [currentRole, setCurrentRole] = useState<UserRole>('dueno');
+
+  useEffect(() => {
+    // Initialize role service and subscribe to changes
+    const initializeRole = async () => {
+      await roleService.initialize();
+      setCurrentRole(roleService.getCurrentRole());
+    };
+
+    initializeRole();
+
+    // Subscribe to role changes
+    const unsubscribe = roleService.subscribe((newRole) => {
+      setCurrentRole(newRole);
+    });
+
+    return unsubscribe;
+  }, []);
+
+  // Dynamic tab configuration based on role
+  const getTabConfig = () => {
+    if (currentRole === 'veterinario') {
+      return {
+        tabs: [
+          { name: 'Dashboard', component: VetDashboardScreen, label: 'Panel', icon: 'medical' },
+          { name: 'Citas', component: VetAppointmentsScreen, label: 'Citas', icon: 'calendar' },
+          { name: 'Mapa', component: MapScreen, label: 'Mapa', icon: 'map' },
+          { name: 'Perfil', component: ProfileScreen, label: 'Perfil', icon: 'person' }
+        ]
+      };
+    } else {
+      return {
+        tabs: [
+          { name: 'Inicio', component: HomeScreen, label: 'Inicio', icon: 'home' },
+          { name: 'MisMascotas', component: MyPetsScreen, label: 'Mis Mascotas', icon: 'paw' },
+          { name: 'Mapa', component: MapScreen, label: 'Mapa', icon: 'map' },
+          { name: 'Perfil', component: ProfileScreen, label: 'Perfil', icon: 'person' }
+        ]
+      };
+    }
+  };
+
+  const tabConfig = getTabConfig();
+
   return (
     <Tab.Navigator
       screenOptions={({ route }) => ({
         tabBarIcon: ({ focused, color, size }) => {
-          let iconName: keyof typeof Ionicons.glyphMap;
-
-          if (route.name === 'Inicio') {
-            iconName = focused ? 'home' : 'home-outline';
-          } else if (route.name === 'MisMascotas') {
-            iconName = focused ? 'paw' : 'paw-outline';
-          } else if (route.name === 'Mapa') {
-            iconName = focused ? 'map' : 'map-outline';
-          } else if (route.name === 'Perfil') {
-            iconName = focused ? 'person' : 'person-outline';
-          } else {
-            iconName = 'help-outline';
-          }
-
-          return <Ionicons name={iconName} size={size} color={color} />;
+          const tab = tabConfig.tabs.find(t => t.name === route.name);
+          const iconName = tab ? (focused ? tab.icon : `${tab.icon}-outline`) : 'help-outline';
+          return <Ionicons name={iconName as any} size={size} color={color} />;
         },
         tabBarActiveTintColor: Colors.primary,
         tabBarInactiveTintColor: '#8E8E93',
@@ -37,9 +72,9 @@ export const TabNavigator: React.FC = () => {
           backgroundColor: Colors.white,
           borderTopWidth: 1,
           borderTopColor: Colors.border,
-          paddingBottom: Platform.OS === 'ios' ? 20 : 5,
-          paddingTop: 8,
-          height: Platform.OS === 'ios' ? 85 : 65,
+          paddingBottom: Platform.OS === 'ios' ? 20 : 10,
+          paddingTop: 10,
+          height: Platform.OS === 'ios' ? 85 : 70,
           shadowColor: '#000',
           shadowOffset: {
             width: 0,
@@ -49,10 +84,13 @@ export const TabNavigator: React.FC = () => {
           shadowRadius: 8,
           elevation: 8,
         },
+        tabBarItemStyle: {
+          flex: 1,
+          paddingHorizontal: 0,
+        },
         tabBarLabelStyle: {
-          fontSize: 12,
+          fontSize: 11,
           fontWeight: '600',
-          marginTop: 4,
         },
         tabBarIconStyle: {
           marginTop: 2,
@@ -62,34 +100,16 @@ export const TabNavigator: React.FC = () => {
         tabBarHideOnKeyboard: true,
       })}
     >
-      <Tab.Screen 
-        name="Inicio" 
-        component={HomeScreen}
-        options={{
-          tabBarLabel: 'Inicio'
-        }}
-      />
-      <Tab.Screen 
-        name="MisMascotas" 
-        component={MyPetsScreen}
-        options={{
-          tabBarLabel: 'Mis Mascotas'
-        }}
-      />
-      <Tab.Screen 
-        name="Mapa" 
-        component={MapScreen}
-        options={{
-          tabBarLabel: 'Mapa'
-        }}
-      />
-      <Tab.Screen 
-        name="Perfil" 
-        component={ProfileScreen}
-        options={{
-          tabBarLabel: 'Perfil'
-        }}
-      />
+      {tabConfig.tabs.map((tab) => (
+        <Tab.Screen 
+          key={tab.name}
+          name={tab.name} 
+          component={tab.component}
+          options={{
+            tabBarLabel: tab.label
+          }}
+        />
+      ))}
     </Tab.Navigator>
   );
 };

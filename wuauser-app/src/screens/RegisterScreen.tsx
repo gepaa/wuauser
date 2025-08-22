@@ -12,7 +12,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Logo } from '../components/Logo';
 import { Button } from '../components/Button';
-import { colors } from '../constants/colors';
+import { Colors } from '../constants/colors';
 
 interface RegisterScreenProps {
   onRegister: (data: {
@@ -235,11 +235,11 @@ export const RegisterScreen: React.FC<RegisterScreenProps> = ({
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: colors.background,
+    backgroundColor: Colors.background,
   },
   container: {
     flex: 1,
-    backgroundColor: colors.background,
+    backgroundColor: Colors.background,
   },
   scrollContainer: {
     flexGrow: 1,
@@ -252,7 +252,7 @@ const styles = StyleSheet.create({
   },
   subtitle: {
     fontSize: 16,
-    color: colors.textSecondary,
+    color: Colors.textSecondary,
     marginTop: 12,
     textAlign: 'center',
   },
@@ -272,24 +272,24 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 14,
     fontWeight: '600',
-    color: colors.text,
+    color: Colors.text,
     marginBottom: 6,
   },
   input: {
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: Colors.border,
     borderRadius: 8,
     paddingHorizontal: 16,
     paddingVertical: 12,
     fontSize: 16,
-    backgroundColor: colors.surface,
+    backgroundColor: Colors.surface,
   },
   inputError: {
-    borderColor: colors.error,
+    borderColor: Colors.error,
   },
   errorText: {
     fontSize: 12,
-    color: colors.error,
+    color: Colors.error,
     marginTop: 4,
   },
   userTypeContainer: {
@@ -299,24 +299,24 @@ const styles = StyleSheet.create({
   userTypeButton: {
     flex: 1,
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: Colors.border,
     borderRadius: 8,
     paddingVertical: 12,
     paddingHorizontal: 16,
     alignItems: 'center',
-    backgroundColor: colors.surface,
+    backgroundColor: Colors.surface,
   },
   userTypeButtonActive: {
-    borderColor: colors.primary,
-    backgroundColor: colors.primary,
+    borderColor: Colors.primary,
+    backgroundColor: Colors.primary,
   },
   userTypeButtonText: {
     fontSize: 14,
-    color: colors.textSecondary,
+    color: Colors.textSecondary,
     fontWeight: '500',
   },
   userTypeButtonTextActive: {
-    color: colors.white,
+    color: Colors.white,
   },
   registerButton: {
     marginTop: 16,
@@ -330,11 +330,11 @@ const styles = StyleSheet.create({
   },
   footerText: {
     fontSize: 14,
-    color: colors.textSecondary,
+    color: Colors.textSecondary,
   },
   loginLink: {
     fontSize: 14,
-    color: colors.primary,
+    color: Colors.primary,
     fontWeight: '600',
   },
 });

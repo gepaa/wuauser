@@ -7,7 +7,7 @@ import {
   TextStyle,
   ActivityIndicator,
 } from 'react-native';
-import { colors } from '../constants/colors';
+import { Colors } from '../constants/colors';
 
 interface ButtonProps {
   title: string;
@@ -55,7 +55,7 @@ export const Button: React.FC<ButtonProps> = ({
     >
       {loading ? (
         <ActivityIndicator
-          color={variant === 'primary' ? colors.white : colors.primary}
+          color={variant === 'primary' ? Colors.white : Colors.primary}
           size="small"
         />
       ) : (
@@ -70,7 +70,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: colors.black,
+    shadowColor: Colors.black,
     shadowOffset: {
       width: 0,
       height: 2,
@@ -80,15 +80,15 @@ const styles = StyleSheet.create({
     elevation: 4,
   },
   primaryBackground: {
-    backgroundColor: colors.primary,
+    backgroundColor: Colors.primary,
   },
   secondaryBackground: {
-    backgroundColor: colors.secondary,
+    backgroundColor: Colors.secondary,
   },
   outlineBackground: {
     backgroundColor: 'transparent',
     borderWidth: 1,
-    borderColor: colors.primary,
+    borderColor: Colors.primary,
   },
   smallSize: {
     paddingHorizontal: 16,
@@ -115,13 +115,13 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   primaryText: {
-    color: colors.white,
+    color: Colors.white,
   },
   secondaryText: {
-    color: colors.white,
+    color: Colors.white,
   },
   outlineText: {
-    color: colors.primary,
+    color: Colors.primary,
   },
   smallText: {
     fontSize: 14,

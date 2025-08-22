@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, Alert, TouchableOpacity, Dimensions } from 'react-native';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import { Ionicons } from '@expo/vector-icons';
-import { colors } from '../constants/colors';
+import { Colors } from '../constants/colors';
 
 const { width, height } = Dimensions.get('window');
 
@@ -102,7 +102,7 @@ Código: ${data}
     return (
       <View style={styles.container}>
         <View style={styles.permissionContainer}>
-          <Ionicons name="camera-outline" size={80} color={colors.textSecondary} />
+          <Ionicons name="camera-outline" size={80} color={Colors.textSecondary} />
           <Text style={styles.permissionTitle}>Permisos de Cámara Necesarios</Text>
           <Text style={styles.permissionText}>
             Para escanear códigos QR de mascotas, necesitamos acceso a tu cámara.
@@ -204,20 +204,20 @@ const styles = StyleSheet.create({
   permissionTitle: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: colors.text,
+    color: Colors.text,
     marginTop: 20,
     marginBottom: 16,
     textAlign: 'center',
   },
   permissionText: {
     fontSize: 16,
-    color: colors.textSecondary,
+    color: Colors.textSecondary,
     textAlign: 'center',
     lineHeight: 24,
     marginBottom: 30,
   },
   permissionButton: {
-    backgroundColor: colors.primary,
+    backgroundColor: Colors.primary,
     paddingHorizontal: 32,
     paddingVertical: 16,
     borderRadius: 12,
@@ -232,7 +232,7 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
   },
   backButtonText: {
-    color: colors.primary,
+    color: Colors.primary,
     fontSize: 16,
     fontWeight: '600',
   },
@@ -336,7 +336,7 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   rescanButton: {
-    backgroundColor: colors.primary,
+    backgroundColor: Colors.primary,
     paddingHorizontal: 32,
     paddingVertical: 16,
     borderRadius: 12,

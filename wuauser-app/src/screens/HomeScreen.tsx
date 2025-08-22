@@ -14,9 +14,10 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as SecureStore from 'expo-secure-store';
-import { colors } from '../constants/colors';
+import { Colors } from '../constants/colors';
 import { authService, dbService, supabase } from '../services/supabase';
 import { useUserProfile } from '../hooks/useUserProfile';
+import roleService from '../services/roleService';
 
 const { width } = Dimensions.get('window');
 
@@ -41,31 +42,45 @@ interface Pet {
 const petTips = [
   {
     id: 1,
-    title: "Hidratación en Verano",
-    description: "Asegúrate de que tu mascota siempre tenga agua fresca disponible durante los días calurosos.",
+    title: "Hidratación Diaria",
+    description: "Tu mascota necesita agua fresca disponible 24/7. Cambia el agua todos los días y asegúrate de que el recipiente esté siempre limpio.",
     icon: "water-outline",
     color: "#4ECDC4"
   },
   {
     id: 2,
-    title: "Vacunación al Día",
-    description: "Mantén las vacunas de tu mascota actualizadas para prevenir enfermedades.",
+    title: "Calendario de Vacunas",
+    description: "Las vacunas previenen enfermedades graves. Mantén un calendario actualizado y consulta con tu veterinario sobre refuerzos anuales.",
     icon: "medical-outline",
     color: "#E85D4E"
   },
   {
     id: 3,
-    title: "Ejercicio Diario",
-    description: "Los paseos regulares mantienen a tu mascota saludable y feliz.",
+    title: "Ejercicio Según la Edad",
+    description: "Los cachorros necesitan juegos cortos, los adultos 30-60 min diarios, y los seniors ejercicio suave pero constante.",
     icon: "walk-outline",
     color: "#F4B740"
   },
   {
     id: 4,
-    title: "Cepillado Regular",
-    description: "El cepillado frecuente previene nudos y mantiene el pelaje saludable.",
-    icon: "brush-outline",
-    color: "#95E1D3"
+    title: "Higiene Dental",
+    description: "Cepilla los dientes de tu mascota 2-3 veces por semana. El 80% de perros mayores de 3 años tienen problemas dentales.",
+    icon: "medical-outline",
+    color: "#9C27B0"
+  },
+  {
+    id: 5,
+    title: "Alimentación Balanceada",
+    description: "Usa alimento de calidad apropiado para la edad. Evita chocolate, uvas, cebolla y otros alimentos tóxicos para mascotas.",
+    icon: "nutrition-outline",
+    color: "#FF9800"
+  },
+  {
+    id: 6,
+    title: "Revisiones Preventivas",
+    description: "Visita al veterinario cada 6-12 meses para chequeos. La detección temprana puede salvar vidas y ahorrar dinero.",
+    icon: "heart-outline",
+    color: "#E91E63"
   }
 ];
 
@@ -185,10 +200,45 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
     return userName;
   };
 
+  const handleRoleSwitch = async () => {
+    const canSwitch = await roleService.canSwitchToVet();
+    
+    if (!canSwitch) {
+      Alert.alert(
+        'Acceso Denegado',
+        'No tienes permisos para acceder al modo veterinario. Contacta al administrador si eres un veterinario registrado.',
+        [{ text: 'OK' }]
+      );
+      return;
+    }
+
+    Alert.alert(
+      'Cambiar a Modo Veterinario',
+      'Te cambiará a la vista profesional de veterinario. ¿Continuar?',
+      [
+        {
+          text: 'Cancelar',
+          style: 'cancel'
+        },
+        {
+          text: 'Cambiar',
+          onPress: async () => {
+            try {
+              await roleService.switchRole();
+              // The TabNavigator will automatically update thanks to the subscription
+            } catch (error) {
+              Alert.alert('Error', 'No se pudo cambiar el rol');
+            }
+          }
+        }
+      ]
+    );
+  };
+
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#F4B740" />
+        <ActivityIndicator size="large" color={Colors.primary} />
         <Text style={styles.loadingText}>Cargando perfil...</Text>
       </View>
     );
@@ -220,7 +270,11 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
       <View style={styles.content}>
         {/* Add First Pet Card or Pet Summary */}
         {pets.length === 0 ? (
-          <TouchableOpacity style={styles.addPetCard} onPress={handleAddFirstPet}>
+          <TouchableOpacity 
+            style={styles.addPetCard} 
+            onPress={handleAddFirstPet}
+            activeOpacity={0.8}
+          >
             <LinearGradient
               colors={['#4ECDC4', '#95E1D3']}
               style={styles.addPetGradient}
@@ -257,6 +311,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
             <TouchableOpacity 
               style={[styles.quickAccessButton, { backgroundColor: '#E8F4FD' }]}
               onPress={handleVeterinariansNearby}
+              activeOpacity={0.8}
             >
               <View style={[styles.quickAccessIcon, { backgroundColor: '#2196F3' }]}>
                 <Ionicons name="medical" size={24} color="#FFF" />
@@ -268,6 +323,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
             <TouchableOpacity 
               style={[styles.quickAccessButton, { backgroundColor: '#FFEBEE' }]}
               onPress={handleEmergency}
+              activeOpacity={0.8}
             >
               <View style={[styles.quickAccessIcon, { backgroundColor: '#F44336' }]}>
                 <Ionicons name="warning" size={24} color="#FFF" />
@@ -279,6 +335,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
             <TouchableOpacity 
               style={[styles.quickAccessButton, { backgroundColor: '#F3E5F5' }]}
               onPress={handleMyQR}
+              activeOpacity={0.8}
             >
               <View style={[styles.quickAccessIcon, { backgroundColor: '#9C27B0' }]}>
                 <Ionicons name="qr-code" size={24} color="#FFF" />
@@ -290,6 +347,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
             <TouchableOpacity 
               style={[styles.quickAccessButton, { backgroundColor: '#E8F5E8' }]}
               onPress={() => navigation.navigate('QRScanner')}
+              activeOpacity={0.8}
             >
               <View style={[styles.quickAccessIcon, { backgroundColor: '#4CAF50' }]}>
                 <Ionicons name="scan" size={24} color="#FFF" />
@@ -317,6 +375,20 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
           ))}
         </View>
 
+        {/* Role Switch */}
+        <TouchableOpacity style={styles.roleSwitchCard} onPress={handleRoleSwitch}>
+          <View style={styles.roleSwitchContent}>
+            <View style={styles.roleSwitchIcon}>
+              <Ionicons name="medical" size={24} color="#2196F3" />
+            </View>
+            <View style={styles.roleSwitchTextContainer}>
+              <Text style={styles.roleSwitchTitle}>¿Eres Veterinario?</Text>
+              <Text style={styles.roleSwitchSubtitle}>Cambia al modo profesional</Text>
+            </View>
+            <Ionicons name="arrow-forward" size={20} color="#2196F3" />
+          </View>
+        </TouchableOpacity>
+
         {/* Safety Space */}
         <View style={styles.safetySpace} />
       </View>
@@ -337,10 +409,10 @@ const styles = StyleSheet.create({
   },
   loadingText: {
     fontSize: 16,
-    color: colors.textSecondary,
+    color: Colors.text.secondary,
   },
   header: {
-    paddingHorizontal: 20,
+    paddingHorizontal: 16,
     paddingTop: 60,
     paddingBottom: 30,
   },
@@ -358,21 +430,21 @@ const styles = StyleSheet.create({
     color: '#4A4A4A',
   },
   content: {
-    paddingHorizontal: 20,
-    paddingTop: 20,
+    paddingHorizontal: 16,
+    paddingTop: 24,
   },
   addPetCard: {
-    marginBottom: 30,
-    borderRadius: 16,
+    marginBottom: 32,
+    borderRadius: 12,
     overflow: 'hidden',
     shadowColor: '#000',
     shadowOffset: {
       width: 0,
-      height: 4,
+      height: 8,
     },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 4,
+    shadowOpacity: 0.15,
+    shadowRadius: 16,
+    elevation: 10,
   },
   addPetGradient: {
     padding: 24,
@@ -418,96 +490,160 @@ const styles = StyleSheet.create({
     borderRadius: 12,
   },
   sectionTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
+    fontSize: 22,
+    fontWeight: '800',
     color: '#2A2A2A',
-    marginBottom: 16,
+    marginBottom: 20,
   },
   petsSummary: {
     fontSize: 16,
     color: '#4A4A4A',
   },
   quickAccessContainer: {
-    marginBottom: 30,
+    marginBottom: 36,
   },
   quickAccessGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     justifyContent: 'space-between',
-    gap: 12,
+    gap: 16,
   },
   quickAccessButton: {
     width: (width - 64) / 2,
-    padding: 20,
-    borderRadius: 16,
+    padding: 24,
+    borderRadius: 12,
     alignItems: 'center',
     shadowColor: '#000',
     shadowOffset: {
       width: 0,
-      height: 2,
+      height: 6,
     },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    elevation: 2,
+    shadowOpacity: 0.12,
+    shadowRadius: 12,
+    elevation: 8,
+    minHeight: 140,
+    justifyContent: 'center',
   },
   quickAccessIcon: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 16,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 3,
+    },
+    shadowOpacity: 0.2,
+    shadowRadius: 6,
+    elevation: 4,
+  },
+  quickAccessTitle: {
+    fontSize: 17,
+    fontWeight: '700',
+    color: '#2A2A2A',
+    marginBottom: 6,
+    textAlign: 'center',
+  },
+  quickAccessSubtitle: {
+    fontSize: 13,
+    color: '#666',
+    textAlign: 'center',
+    fontWeight: '500',
+  },
+  tipsContainer: {
+    marginBottom: 36,
+  },
+  tipCard: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    padding: 20,
+    backgroundColor: Colors.white,
+    borderRadius: 12,
+    marginBottom: 16,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 4,
+    },
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    elevation: 6,
+  },
+  tipIcon: {
     width: 48,
     height: 48,
     borderRadius: 24,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 12,
-  },
-  quickAccessTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#2A2A2A',
-    marginBottom: 4,
-  },
-  quickAccessSubtitle: {
-    fontSize: 12,
-    color: '#666',
-  },
-  tipsContainer: {
-    marginBottom: 30,
-  },
-  tipCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 16,
-    backgroundColor: '#FFF',
-    borderRadius: 12,
-    marginBottom: 12,
+    marginRight: 18,
+    marginTop: 2,
     shadowColor: '#000',
     shadowOffset: {
       width: 0,
       height: 2,
     },
-    shadowOpacity: 0.05,
+    shadowOpacity: 0.1,
     shadowRadius: 4,
-    elevation: 2,
-  },
-  tipIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 16,
+    elevation: 3,
   },
   tipContent: {
     flex: 1,
   },
   tipTitle: {
-    fontSize: 16,
-    fontWeight: '600',
+    fontSize: 17,
+    fontWeight: '700',
+    color: '#2A2A2A',
+    marginBottom: 8,
+  },
+  tipDescription: {
+    fontSize: 15,
+    color: '#555',
+    lineHeight: 22,
+  },
+  roleSwitchCard: {
+    marginBottom: 20,
+    backgroundColor: '#E8F4FD',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#2196F3',
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 4,
+    },
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    elevation: 6,
+  },
+  roleSwitchContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 20,
+  },
+  roleSwitchIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: 'rgba(33, 150, 243, 0.1)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 16,
+  },
+  roleSwitchTextContainer: {
+    flex: 1,
+  },
+  roleSwitchTitle: {
+    fontSize: 17,
+    fontWeight: '700',
     color: '#2A2A2A',
     marginBottom: 4,
   },
-  tipDescription: {
+  roleSwitchSubtitle: {
     fontSize: 14,
     color: '#666',
-    lineHeight: 18,
   },
   safetySpace: {
     height: 100,

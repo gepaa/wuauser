@@ -10,7 +10,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import { colors } from '../constants/colors';
+import { Colors } from '../constants/colors';
 import { authService, dbService } from '../services/supabase';
 
 interface MyPetsScreenProps {
@@ -228,7 +228,7 @@ const styles = StyleSheet.create({
   },
   loadingText: {
     fontSize: 16,
-    color: colors.textSecondary,
+    color: Colors.textSecondary,
   },
   header: {
     paddingHorizontal: 20,

@@ -255,7 +255,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ navigation }) => {
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#F4B740" />
+        <ActivityIndicator size="large" color={Colors.primary} />
         <Text style={styles.loadingText}>Cargando perfil...</Text>
       </View>
     );
@@ -285,86 +285,6 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ navigation }) => {
                 {profile?.tipo_usuario === 'veterinario' ? '🩺 Veterinario' : '🐕 Dueño de Mascota'}
               </Text>
             </View>
-            
-            {/* Botón para actualizar perfil */}
-            <TouchableOpacity 
-              style={styles.refreshButton} 
-              onPress={refreshProfile}
-            >
-              <Ionicons name="refresh" size={16} color="#F4B740" />
-              <Text style={styles.refreshButtonText}>Actualizar</Text>
-            </TouchableOpacity>
-            
-            {/* Debug button - temporal */}
-            <TouchableOpacity 
-              style={styles.debugButton}
-              onPress={async () => {
-                try {
-                  const { data: { user } } = await supabase.auth.getUser();
-                  
-                  if (!user) {
-                    Alert.alert('Error', 'No hay usuario autenticado');
-                    return;
-                  }
-                  
-                  // ACTUALIZAR el perfil existente con datos reales
-                  const { data: updatedProfile, error } = await supabase
-                    .from('profiles')
-                    .update({
-                      nombre_completo: 'Pablo Guido',  // TUS DATOS REALES
-                      telefono: '5581707481',
-                      email: 'guidoo.pabloo@gmail.com'
-                    })
-                    .eq('id', user.id)
-                    .select()
-                    .single();
-                  
-                  if (error) {
-                    Alert.alert('Error actualizando', error.message);
-                  } else {
-                    Alert.alert('¡Éxito!', 'Perfil actualizado correctamente');
-                    // Recargar la pantalla
-                    await refreshProfile();
-                  }
-                } catch (error) {
-                  Alert.alert('Error', error.message);
-                }
-              }}
-            >
-              <Text style={styles.debugButtonText}>🔄 Actualizar con Datos Reales</Text>
-            </TouchableOpacity>
-            
-            {/* Force Logout button - temporal */}
-            <TouchableOpacity 
-              style={[styles.debugButton, { backgroundColor: '#FF3B30', marginTop: 4 }]}
-              onPress={async () => {
-                try {
-                  // Cerrar sesión en Supabase
-                  await supabase.auth.signOut();
-                  
-                  // Limpiar TODOS los datos de SecureStore
-                  await SecureStore.deleteItemAsync('supabase_session');
-                  await SecureStore.deleteItemAsync('user_email');
-                  await SecureStore.deleteItemAsync('user_session');
-                  await SecureStore.deleteItemAsync('user_type');
-                  await SecureStore.deleteItemAsync('user_profile');
-                  await SecureStore.deleteItemAsync('profile_image');
-                  
-                  // Navegar al login
-                  navigation.reset({
-                    index: 0,
-                    routes: [{ name: 'UserType' }]
-                  });
-                  
-                  Alert.alert('Sesión cerrada', 'Has cerrado sesión correctamente');
-                } catch (error) {
-                  console.error('Error cerrando sesión:', error);
-                  Alert.alert('Error', 'No se pudo cerrar sesión: ' + error.message);
-                }
-              }}
-            >
-              <Text style={styles.debugButtonText}>🚪 Forzar Cerrar Sesión</Text>
-            </TouchableOpacity>
           </View>
         </View>
       </LinearGradient>
@@ -376,6 +296,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ navigation }) => {
             key={option.id}
             style={styles.optionItem}
             onPress={option.action}
+            activeOpacity={0.8}
           >
             <View style={styles.optionLeft}>
               <View style={[styles.optionIcon, { backgroundColor: `${option.color}20` }]}>
@@ -399,9 +320,25 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ navigation }) => {
         ))}
       </View>
 
+      {/* Refresh Profile Button */}
+      <View style={styles.refreshContainer}>
+        <TouchableOpacity 
+          style={styles.refreshProfileButton} 
+          onPress={refreshProfile}
+          activeOpacity={0.8}
+        >
+          <Ionicons name="refresh" size={20} color="#F4B740" />
+          <Text style={styles.refreshProfileText}>Actualizar Perfil</Text>
+        </TouchableOpacity>
+      </View>
+
       {/* Logout Button */}
       <View style={styles.logoutContainer}>
-        <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
+        <TouchableOpacity 
+          style={styles.logoutButton} 
+          onPress={handleLogout}
+          activeOpacity={0.8}
+        >
           <Ionicons name="log-out-outline" size={24} color="#F44336" />
           <Text style={styles.logoutText}>Cerrar Sesión</Text>
         </TouchableOpacity>
@@ -437,7 +374,7 @@ const styles = StyleSheet.create({
     color: Colors.text.secondary,
   },
   header: {
-    paddingHorizontal: 20,
+    paddingHorizontal: 16,
     paddingTop: 60,
     paddingBottom: 30,
   },
@@ -495,7 +432,7 @@ const styles = StyleSheet.create({
     color: '#4A4A4A',
   },
   optionsContainer: {
-    paddingHorizontal: 20,
+    paddingHorizontal: 16,
     paddingTop: 20,
   },
   optionItem: {
@@ -546,7 +483,7 @@ const styles = StyleSheet.create({
     marginLeft: 12,
   },
   logoutContainer: {
-    paddingHorizontal: 20,
+    paddingHorizontal: 16,
     paddingTop: 20,
   },
   logoutButton: {
@@ -564,7 +501,7 @@ const styles = StyleSheet.create({
     color: '#F44336',
   },
   versionContainer: {
-    paddingHorizontal: 20,
+    paddingHorizontal: 16,
     paddingTop: 20,
     alignItems: 'center',
   },
@@ -575,34 +512,25 @@ const styles = StyleSheet.create({
   safetySpace: {
     height: 100,
   },
-  refreshButton: {
+  refreshContainer: {
+    paddingHorizontal: 16,
+    paddingTop: 10,
+  },
+  refreshProfileButton: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 14,
     backgroundColor: 'rgba(244, 183, 64, 0.1)',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 16,
-    marginTop: 8,
-    alignSelf: 'flex-start',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(244, 183, 64, 0.3)',
+    gap: 8,
   },
-  refreshButtonText: {
-    fontSize: 12,
+  refreshProfileText: {
+    fontSize: 16,
     fontWeight: '600',
     color: '#F4B740',
-    marginLeft: 4,
-  },
-  debugButton: {
-    backgroundColor: '#FF4444',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 16,
-    marginTop: 8,
-    alignSelf: 'flex-start',
-  },
-  debugButtonText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#FFF',
   },
 });
 

@@ -15,7 +15,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 // import MapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps';
-import { colors } from '../constants/colors';
+import { Colors } from '../constants/colors';
 import { veterinarianService, VeterinarianData, VeterinarianReview } from '../services/veterinarianService';
 
 const { width, height } = Dimensions.get('window');
@@ -295,7 +295,7 @@ export const VetDetailScreen: React.FC<VetDetailScreenProps> = ({ navigation, ro
       {reviews.length > 3 && (
         <TouchableOpacity style={styles.seeAllReviews}>
           <Text style={styles.seeAllReviewsText}>Ver todas las reseñas</Text>
-          <Ionicons name="chevron-forward" size={16} color={colors.primary} />
+          <Ionicons name="chevron-forward" size={16} color={Colors.primary} />
         </TouchableOpacity>
       )}
     </View>
@@ -311,7 +311,7 @@ export const VetDetailScreen: React.FC<VetDetailScreenProps> = ({ navigation, ro
           <Text style={{ color: '#999', marginTop: 8 }}>Mapa no disponible</Text>
         </View>
         <TouchableOpacity style={styles.mapOverlay} onPress={handleDirections}>
-          <Ionicons name="navigate-outline" size={24} color={colors.primary} />
+          <Ionicons name="navigate-outline" size={24} color={Colors.primary} />
           <Text style={styles.mapOverlayText}>Cómo llegar</Text>
         </TouchableOpacity>
       </View>
@@ -488,7 +488,7 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   retryButton: {
-    backgroundColor: colors.primary,
+    backgroundColor: Colors.primary,
     paddingHorizontal: 24,
     paddingVertical: 12,
     borderRadius: 8,
@@ -651,7 +651,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: colors.primary,
+    backgroundColor: Colors.primary,
     paddingVertical: 16,
     borderRadius: 12,
     marginBottom: 16,
@@ -743,7 +743,7 @@ const styles = StyleSheet.create({
   servicePrice: {
     fontSize: 16,
     fontWeight: '600',
-    color: colors.primary,
+    color: Colors.primary,
   },
   serviceDescription: {
     fontSize: 14,
@@ -858,7 +858,7 @@ const styles = StyleSheet.create({
   },
   seeAllReviewsText: {
     fontSize: 14,
-    color: colors.primary,
+    color: Colors.primary,
     fontWeight: '500',
   },
   mapContainer: {
@@ -904,7 +904,7 @@ const styles = StyleSheet.create({
   },
   mapOverlayText: {
     fontSize: 12,
-    color: colors.primary,
+    color: Colors.primary,
     fontWeight: '500',
   },
   address: {

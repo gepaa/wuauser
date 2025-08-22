@@ -5,7 +5,7 @@ import { useForm, Controller } from 'react-hook-form';
 import { Ionicons, FontAwesome5 } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { colors } from '../constants/colors';
+import { Colors } from '../constants/colors';
 import { authService, dbService } from '../services/supabase';
 
 interface RegisterVeterinarioScreenProps {
@@ -30,7 +30,7 @@ interface FormData {
 // Validation patterns for veterinarians
 const EMAIL_PATTERN = /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i;
 const PHONE_PATTERN = /^[0-9]{10}$/; // Exactly 10 digits for Mexican phone numbers
-const CEDULA_PATTERN = /^[0-9]{7,8}$/; // 7-8 digits for professional license
+const CEDULA_PATTERN = /^([0-9]{7,8}|PRUEBA123)$/; // 7-8 digits for professional license or PRUEBA123 for testing
 const PASSWORD_MIN_LENGTH = 8;
 
 export const RegisterVeterinarioScreen: React.FC<RegisterVeterinarioScreenProps> = ({ 
@@ -51,14 +51,14 @@ export const RegisterVeterinarioScreen: React.FC<RegisterVeterinarioScreenProps>
   } = useForm<FormData>({
     mode: 'onChange',
     defaultValues: {
-      nombre: '',
-      apellido: '',
-      email: '',
-      telefono: '',
-      cedulaProfesional: '',
-      especialidad: '',
-      clinica: '',
-      direccionClinica: '',
+      nombre: 'Juan',
+      apellido: 'Pérez',
+      email: 'vet@test.com',
+      telefono: '5512345678',
+      cedulaProfesional: 'PRUEBA123',
+      especialidad: 'Medicina Veterinaria General',
+      clinica: 'Veterinaria San José',
+      direccionClinica: 'Av. Principal 123, Col. Centro',
       password: '',
       confirmPassword: '',
     },
@@ -151,7 +151,7 @@ export const RegisterVeterinarioScreen: React.FC<RegisterVeterinarioScreenProps>
             )}
             {errors[name] && (
               <View style={styles.errorContainer}>
-                <Ionicons name="alert-circle" size={16} color={colors.error} />
+                <Ionicons name="alert-circle" size={16} color={Colors.error} />
                 <Text style={styles.errorText}>{errors[name]?.message}</Text>
               </View>
             )}
@@ -247,25 +247,49 @@ export const RegisterVeterinarioScreen: React.FC<RegisterVeterinarioScreenProps>
       }
       
       if (authData?.user) {
-        Alert.alert(
-          '¡Solicitud Enviada!',
-          'Tu solicitud está en revisión. Un administrador verificará tu información profesional y te contactará en las próximas 24-48 horas.',
-          [
-            {
-              text: 'Entendido',
-              onPress: () => {
-                if (onSuccess) {
-                  onSuccess();
-                } else {
-                  navigation.reset({
-                    index: 0,
-                    routes: [{ name: 'Login' }],
-                  });
+        const isTestRegistration = cedulaProfesional === 'PRUEBA123';
+        
+        if (isTestRegistration) {
+          Alert.alert(
+            '¡Registro Exitoso!',
+            'Tu cuenta de prueba ha sido creada. Puedes acceder inmediatamente a tu dashboard.',
+            [
+              {
+                text: 'Continuar',
+                onPress: () => {
+                  if (onSuccess) {
+                    onSuccess();
+                  } else {
+                    navigation.reset({
+                      index: 0,
+                      routes: [{ name: 'Login' }],
+                    });
+                  }
                 }
               }
-            }
-          ]
-        );
+            ]
+          );
+        } else {
+          Alert.alert(
+            '¡Solicitud Enviada!',
+            'Tu solicitud está en revisión. Un administrador verificará tu información profesional y te contactará en las próximas 24-48 horas.',
+            [
+              {
+                text: 'Entendido',
+                onPress: () => {
+                  if (onSuccess) {
+                    onSuccess();
+                  } else {
+                    navigation.reset({
+                      index: 0,
+                      routes: [{ name: 'Login' }],
+                    });
+                  }
+                }
+              }
+            ]
+          );
+        }
       }
     } catch (error: any) {
       console.error('Error en registro de veterinario:', error);
@@ -388,21 +412,19 @@ export const RegisterVeterinarioScreen: React.FC<RegisterVeterinarioScreenProps>
             <FormField
               name="cedulaProfesional"
               label="Cédula Profesional *"
-              placeholder="1234567 (7-8 dígitos)"
-              keyboardType="numeric"
+              placeholder="1234567 (7-8 dígitos) o PRUEBA123 para testing"
               rules={{
                 required: 'La cédula profesional es requerida',
                 pattern: {
                   value: CEDULA_PATTERN,
-                  message: 'Ingresa una cédula válida (7-8 dígitos)'
+                  message: 'Ingresa una cédula válida (7-8 dígitos) o PRUEBA123 para testing'
                 },
-                minLength: {
-                  value: 7,
-                  message: 'La cédula debe tener entre 7-8 dígitos'
-                },
-                maxLength: {
-                  value: 8,
-                  message: 'La cédula debe tener entre 7-8 dígitos'
+                validate: (value: string) => {
+                  if (value === 'PRUEBA123') return true;
+                  if (!/^[0-9]{7,8}$/.test(value)) {
+                    return 'Ingresa una cédula válida (7-8 dígitos) o PRUEBA123 para testing';
+                  }
+                  return true;
                 }
               }}
             />
@@ -485,7 +507,7 @@ export const RegisterVeterinarioScreen: React.FC<RegisterVeterinarioScreenProps>
             <View style={styles.infoContainer}>
               <Ionicons name="shield-checkmark" size={24} color="#44A08D" />
               <Text style={styles.infoText}>
-                Verificaremos tu cédula profesional y te contactaremos en 24-48 horas
+                Usa "PRUEBA123" como cédula para acceso inmediato (testing)
               </Text>
             </View>
 
@@ -625,7 +647,7 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
   },
   inputError: {
-    borderColor: colors.error,
+    borderColor: Colors.error,
     borderWidth: 2,
   },
   errorContainer: {
@@ -635,7 +657,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 4,
   },
   errorText: {
-    color: colors.error,
+    color: Colors.error,
     fontSize: 12,
     marginLeft: 4,
     flex: 1,

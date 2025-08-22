@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
-import { colors } from '../constants/colors';
+import { Colors } from '../constants/colors';
 
 interface LogoProps {
   size?: 'small' | 'medium' | 'large';
@@ -51,11 +51,11 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   logoContainer: {
-    backgroundColor: colors.primary,
+    backgroundColor: Colors.primary,
     borderRadius: 50,
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: colors.black,
+    shadowColor: Colors.black,
     shadowOffset: {
       width: 0,
       height: 4,
@@ -65,13 +65,13 @@ const styles = StyleSheet.create({
     elevation: 8,
   },
   logoText: {
-    color: colors.white,
+    color: Colors.white,
     fontWeight: 'bold',
   },
   brandText: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: colors.text,
+    color: Colors.text,
     marginTop: 16,
   },
 });
