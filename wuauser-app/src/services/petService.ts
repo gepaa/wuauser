@@ -1,7 +1,7 @@
 import { supabase } from './supabase';
-import { qrGenerator } from '../utils/qrGenerator';
 import * as ImagePicker from 'expo-image-picker';
 import * as FileSystem from 'expo-file-system';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export interface PetData {
   id?: string;
@@ -12,12 +12,12 @@ export interface PetData {
   fecha_nacimiento: string;
   color_señas: string;
   foto_url?: string;
-  chip_numero?: string;
+  collar_id?: string;
+  has_gps?: boolean;
   esterilizado: boolean;
   vacunas: string[];
   alergias_condiciones?: string;
   veterinario_cabecera?: string;
-  qr_id?: string;
   owner_id: string;
   created_at?: string;
   updated_at?: string;
@@ -187,48 +187,47 @@ export const petService = {
     }
   },
 
-  async createPet(petData: PetData, ownerData: any): Promise<{ data?: PetData; error?: string }> {
+  async createPet(petData: Partial<PetData>, ownerData: any): Promise<{ data?: PetData; error?: string }> {
     try {
-      if (!supabase) {
-        // Mock implementation for development
-        console.log('🎭 Mock createPet:', petData);
-        const mockPet: PetData = {
-          ...petData,
-          id: `mock_pet_${Date.now()}`,
-          qr_id: qrGenerator.generateUniquePetId(),
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-        };
-        return { data: mockPet };
-      }
-
-      // Generate QR for the pet
-      const qrResult = await qrGenerator.generatePetQR(petData, ownerData);
-      if (!qrResult.success) {
-        return { error: qrResult.error || 'Error generando código QR' };
-      }
-
-      const petWithQR = {
-        ...petData,
-        qr_id: qrResult.qrId,
+      const petId = `pet_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      
+      const newPet: PetData = {
+        id: petId,
+        nombre: petData.nombre || '',
+        especie: petData.especie || 'Perro',
+        raza: petData.raza || '',
+        sexo: petData.sexo || 'Macho',
+        fecha_nacimiento: petData.fecha_nacimiento || new Date().toISOString(),
+        color_señas: petData.color_señas || '',
+        collar_id: petData.collar_id || null,
+        has_gps: !!petData.collar_id,
+        esterilizado: petData.esterilizado || false,
+        vacunas: petData.vacunas || [],
+        alergias_condiciones: petData.alergias_condiciones || '',
+        veterinario_cabecera: petData.veterinario_cabecera || '',
+        owner_id: ownerData.id || 'local_owner',
+        foto_url: petData.foto_url || null,
         created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
       };
-
-      const { data, error } = await supabase
-        .from('pets')
-        .insert(petWithQR)
-        .select()
-        .single();
-
-      if (error) {
-        return { error: error.message };
-      }
-
-      return { data: data as PetData };
+      
+      // Guardar SOLO en AsyncStorage
+      const petsKey = 'user_pets';
+      const existingPetsJson = await AsyncStorage.getItem(petsKey);
+      const existingPets = existingPetsJson ? JSON.parse(existingPetsJson) : [];
+      
+      existingPets.push(newPet);
+      await AsyncStorage.setItem(petsKey, JSON.stringify(existingPets));
+      
+      // También guardar individualmente para acceso rápido
+      await AsyncStorage.setItem(`pet_${petId}`, JSON.stringify(newPet));
+      
+      console.log('Mascota guardada localmente:', newPet);
+      return { data: newPet };
+      
     } catch (error: any) {
-      console.error('Error creating pet:', error);
-      return { error: error.message };
+      console.error('Error guardando mascota:', error);
+      return { error: error.message || 'Error al guardar mascota' };
     }
   },
 
@@ -259,24 +258,25 @@ export const petService = {
 
   async deletePet(petId: string): Promise<{ success: boolean; error?: string }> {
     try {
-      if (!supabase) {
-        console.log('🎭 Mock deletePet:', petId);
-        return { success: true };
-      }
-
-      const { error } = await supabase
-        .from('pets')
-        .delete()
-        .eq('id', petId);
-
-      if (error) {
-        return { success: false, error: error.message };
-      }
-
+      // Eliminar de AsyncStorage
+      const petsKey = 'user_pets';
+      const existingPetsJson = await AsyncStorage.getItem(petsKey);
+      const existingPets = existingPetsJson ? JSON.parse(existingPetsJson) : [];
+      
+      // Filtrar la mascota a eliminar
+      const updatedPets = existingPets.filter((pet: PetData) => pet.id !== petId);
+      
+      // Guardar la lista actualizada
+      await AsyncStorage.setItem(petsKey, JSON.stringify(updatedPets));
+      
+      // También eliminar la entrada individual
+      await AsyncStorage.removeItem(`pet_${petId}`);
+      
+      console.log('Mascota eliminada:', petId);
       return { success: true };
     } catch (error: any) {
-      console.error('Error deleting pet:', error);
-      return { success: false, error: error.message };
+      console.error('Error eliminando mascota:', error);
+      return { success: false, error: error.message || 'Error al eliminar mascota' };
     }
   },
 
@@ -292,11 +292,11 @@ export const petService = {
           sexo: 'Macho',
           fecha_nacimiento: '2020-05-15',
           color_señas: 'Dorado con mancha blanca en el pecho',
-          chip_numero: '123456789012345',
+          collar_id: 'WUA-1234-5678',
           esterilizado: true,
           vacunas: ['Parvovirus', 'Moquillo', 'Rabia'],
           alergias_condiciones: 'Alérgico al pollo',
-          qr_id: 'mock_qr_123',
+          has_gps: true,
           owner_id: 'mock_owner',
           created_at: new Date().toISOString(),
         };
@@ -322,25 +322,14 @@ export const petService = {
 
   async getUserPets(userId: string): Promise<{ data?: PetData[]; error?: string }> {
     try {
-      if (!supabase) {
-        console.log('🎭 Mock getUserPets:', userId);
-        return { data: [] }; // Return empty array for mock
-      }
-
-      const { data, error } = await supabase
-        .from('pets')
-        .select('*')
-        .eq('owner_id', userId)
-        .order('created_at', { ascending: false });
-
-      if (error) {
-        return { error: error.message };
-      }
-
-      return { data: data as PetData[] };
+      const petsKey = 'user_pets';
+      const petsJson = await AsyncStorage.getItem(petsKey);
+      const pets = petsJson ? JSON.parse(petsJson) : [];
+      
+      return { data: pets };
     } catch (error: any) {
-      console.error('Error getting user pets:', error);
-      return { error: error.message };
+      console.error('Error obteniendo mascotas:', error);
+      return { data: [] }; // Retornar array vacío si no hay mascotas
     }
   },
 
@@ -437,6 +426,20 @@ export const petService = {
     } catch (error: any) {
       console.error('Error getting pet medical records:', error);
       return { error: error.message };
+    }
+  },
+
+  // Alias para getPetsByOwner
+  async getPetsByOwner(ownerId: string): Promise<{ data?: PetData[]; error?: string }> {
+    try {
+      const petsKey = 'user_pets';
+      const petsJson = await AsyncStorage.getItem(petsKey);
+      const pets = petsJson ? JSON.parse(petsJson) : [];
+      
+      return { data: pets };
+    } catch (error: any) {
+      console.error('Error obteniendo mascotas:', error);
+      return { data: [] }; // Retornar array vacío si no hay mascotas
     }
   },
 };

@@ -12,6 +12,7 @@ import {
   KeyboardAvoidingView,
   Platform
 } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useForm, Controller } from 'react-hook-form';
@@ -21,7 +22,6 @@ import { petService, PetData } from '../services/petService';
 import { authService } from '../services/supabase';
 import { CustomAlert, AlertType } from '../components/CustomAlert';
 import Toast from 'react-native-toast-message';
-import QRCode from 'react-native-qrcode-svg';
 import { RadioButton } from '../components/RadioButton';
 import chipTrackingService from '../services/chipTrackingService';
 
@@ -54,11 +54,10 @@ export const AddPetScreen: React.FC<AddPetScreenProps> = ({ navigation, route })
   const [isLoading, setIsLoading] = useState(false);
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [selectedPhoto, setSelectedPhoto] = useState<string | null>(null);
-  const [hasChip, setHasChip] = useState<boolean | null>(null);
-  const [chipCode, setChipCode] = useState('');
-  const [chipVerified, setChipVerified] = useState(false);
+  const [hasCollar, setHasCollar] = useState<boolean | null>(null);
+  const [collarCode, setCollarCode] = useState('');
+  const [collarVerified, setCollarVerified] = useState(false);
   const [selectedVaccines, setSelectedVaccines] = useState<string[]>([]);
-  const [generatedQR, setGeneratedQR] = useState<string | null>(null);
   
   // Alert state
   const [alertVisible, setAlertVisible] = useState(false);
@@ -145,65 +144,59 @@ export const AddPetScreen: React.FC<AddPetScreenProps> = ({ navigation, route })
     setValue('vacunas', newVaccines);
   };
 
-  const handleScanChip = () => {
-    // Navigate to QR scanner for chip scanning
+  const handleScanCollar = () => {
+    // Navigate to collar scanner
     navigation.navigate('QRScanner', {
       onScanComplete: (scannedCode: string) => {
-        handleChipCodeScanned(scannedCode);
+        handleCollarCodeScanned(scannedCode);
       }
     });
   };
 
-  const handleChipCodeScanned = async (scannedCode: string) => {
+  const handleCollarCodeScanned = async (scannedCode: string) => {
     try {
-      setChipCode(scannedCode);
-      const verification = await chipTrackingService.verifyChipCode(scannedCode);
+      setCollarCode(scannedCode);
+      // Mock verification - in real app this would verify with collar API
+      const isValidFormat = /^WUA-\d{4}-\d{4}$/.test(scannedCode);
       
-      if (verification.isValid && !verification.isRegistered) {
-        setChipVerified(true);
+      if (isValidFormat) {
+        setCollarVerified(true);
         Toast.show({
           type: 'success',
-          text1: '¡Chip verificado!',
+          text1: '¡Collar verificado!',
           text2: 'GPS activado para tu mascota',
           position: 'top'
         });
-      } else if (verification.isRegistered) {
-        showAlert({
-          type: 'warning',
-          title: 'Chip ya registrado',
-          message: 'Este chip ya está asociado a otra mascota'
-        });
-        setChipVerified(false);
       } else {
         showAlert({
           type: 'error',
           title: 'Código inválido',
-          message: 'El código del chip no es válido'
+          message: 'El código del collar no es válido. Formato: WUA-XXXX-XXXX'
         });
-        setChipVerified(false);
+        setCollarVerified(false);
       }
     } catch (error) {
-      console.error('Error verifying chip:', error);
+      console.error('Error verifying collar:', error);
       showAlert({
         type: 'error',
         title: 'Error',
-        message: 'No se pudo verificar el chip'
+        message: 'No se pudo verificar el collar'
       });
     }
   };
 
-  const handleChipCodeChange = async (code: string) => {
-    setChipCode(code);
-    setChipVerified(false);
+  const handleCollarCodeChange = async (code: string) => {
+    setCollarCode(code);
+    setCollarVerified(false);
     
     // Auto-verify if code has correct format
-    if (/^CHIP-\d{4}-\d{4}-\d{4}$/.test(code)) {
-      await handleChipCodeScanned(code);
+    if (/^WUA-\d{4}-\d{4}$/.test(code)) {
+      await handleCollarCodeScanned(code);
     }
   };
 
   const handleNext = () => {
-    if (currentStep < 4) {
+    if (currentStep < 3) {
       setCurrentStep(currentStep + 1);
     }
   };
@@ -233,18 +226,8 @@ export const AddPetScreen: React.FC<AddPetScreenProps> = ({ navigation, route })
         return;
       }
 
-      // Generate unique QR code for the pet
+      // Pet registration without QR generation
       const petId = `pet_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-      const qrData = JSON.stringify({
-        petId,
-        nombre: data.nombre,
-        especie: data.especie,
-        raza: data.raza,
-        owner: user?.email || savedEmail,
-        timestamp: new Date().toISOString()
-      });
-      
-      setGeneratedQR(qrData);
 
       // Prepare pet data
       const petData: PetData = {
@@ -254,7 +237,8 @@ export const AddPetScreen: React.FC<AddPetScreenProps> = ({ navigation, route })
         sexo: data.sexo,
         fecha_nacimiento: data.fecha_nacimiento.toISOString().split('T')[0],
         color_señas: data.color_señas,
-        chip_numero: hasChip && chipCode ? chipCode : undefined,
+        collar_id: hasCollar && collarCode ? collarCode : null,
+        has_gps: hasCollar && collarVerified,
         esterilizado: data.esterilizado,
         vacunas: data.vacunas,
         alergias_condiciones: data.alergias_condiciones,
@@ -295,23 +279,38 @@ export const AddPetScreen: React.FC<AddPetScreenProps> = ({ navigation, route })
         return;
       }
 
-      // Register chip if provided
-      if (hasChip && chipVerified && chipCode) {
+      // Verificar que se guardó correctamente
+      if (result.data) {
+        const saved = await AsyncStorage.getItem('user_pets');
+        console.log('Mascotas después de guardar:', saved);
+      }
+
+      // Register collar if provided
+      if (hasCollar && collarVerified && collarCode) {
         try {
           await chipTrackingService.registerChip({
-            chipCode,
+            chipCode: collarCode,
             petId: result.data?.id || petId,
-            verificationMethod: chipCode ? 'manual' : 'scan',
+            verificationMethod: collarCode.includes('WUA') ? 'scan' : 'manual',
             isVerified: true
           });
         } catch (chipError) {
-          console.error('Error registering chip:', chipError);
-          // Don't fail the pet creation for chip registration errors
+          console.error('Error registering collar:', chipError);
+          // Don't fail the pet creation for collar registration errors
         }
       }
 
-      // Always move to QR step on successful save
-      setCurrentStep(4); // Move to QR step
+      // Pet saved successfully - show success alert
+      Alert.alert(
+        '¡Mascota Registrada!',
+        `${data.nombre} se ha agregado exitosamente a tu perfil`,
+        [
+          {
+            text: 'OK',
+            onPress: () => navigation.navigate('HomeScreen', { screen: 'MisMascotas' })
+          }
+        ]
+      );
       
       Toast.show({
         type: 'success',
@@ -332,27 +331,6 @@ export const AddPetScreen: React.FC<AddPetScreenProps> = ({ navigation, route })
     }
   };
 
-  const finishAndGoHome = () => {
-    // Store pet locally for demo
-    const petData = {
-      ...getValues(),
-      id: `pet_${Date.now()}`,
-      qrCode: generatedQR,
-      photo: selectedPhoto
-    };
-    
-    // In a real app, this would save to AsyncStorage
-    console.log('Saving pet locally:', petData);
-    
-    Toast.show({
-      type: 'success',
-      text1: '¡Mascota agregada!',
-      text2: `${watchedNombre} está ahora en tu lista de mascotas`,
-      position: 'top'
-    });
-    
-    navigation.navigate('MisMascotas');
-  };
 
   const renderProgressBar = () => (
     <View style={styles.progressContainer}>
@@ -368,16 +346,11 @@ export const AddPetScreen: React.FC<AddPetScreenProps> = ({ navigation, route })
         <View style={[styles.progressStep, currentStep >= 3 && styles.progressStepActive]}>
           <Text style={[styles.progressStepText, currentStep >= 3 && styles.progressStepTextActive]}>3</Text>
         </View>
-        <View style={[styles.progressLine, currentStep >= 4 && styles.progressLineActive]} />
-        <View style={[styles.progressStep, currentStep >= 4 && styles.progressStepActive]}>
-          <Text style={[styles.progressStepText, currentStep >= 4 && styles.progressStepTextActive]}>4</Text>
-        </View>
       </View>
       <View style={styles.progressLabels}>
         <Text style={styles.progressLabel}>Básica</Text>
-        <Text style={styles.progressLabel}>Chip</Text>
+        <Text style={styles.progressLabel}>Collar GPS</Text>
         <Text style={styles.progressLabel}>Médica</Text>
-        <Text style={styles.progressLabel}>QR</Text>
       </View>
     </View>
   );
@@ -562,63 +535,70 @@ export const AddPetScreen: React.FC<AddPetScreenProps> = ({ navigation, route })
 
   const renderStep2 = () => (
     <View style={styles.stepContainer}>
-      <Text style={styles.stepTitle}>🏷️ Chip Wuauser</Text>
+      <Text style={styles.stepTitle}>🏷️ Collar Wuauser GPS</Text>
       
       <View style={styles.chipSection}>
         <Text style={styles.sectionDescription}>
-          El chip Wuauser te permite rastrear la ubicación de tu mascota en tiempo real y recibir alertas si sale de zonas seguras.
+          El collar Wuauser te permite rastrear la ubicación de tu mascota en tiempo real y recibir alertas si sale de zonas seguras.
         </Text>
         
         <TouchableOpacity 
-          style={[styles.chipOption, hasChip === true && styles.chipOptionSelected]} 
-          onPress={() => setHasChip(true)}
+          style={[styles.chipOption, hasCollar === true && styles.chipOptionSelected]} 
+          onPress={() => setHasCollar(true)}
         >
-          <RadioButton selected={hasChip === true} color="#F4B740" />
+          <RadioButton selected={hasCollar === true} color="#F4B740" />
           <View style={styles.chipOptionContent}>
-            <Text style={[styles.chipOptionTitle, hasChip === true && styles.chipOptionTitleSelected]}>
-              Mi mascota tiene Chip Wuauser
+            <Text style={[styles.chipOptionTitle, hasCollar === true && styles.chipOptionTitleSelected]}>
+              Ya tengo collar Wuauser
             </Text>
-            <Text style={styles.chipOptionSubtitle}>Escanearé el código del chip</Text>
+            <Text style={styles.chipOptionSubtitle}>Escanearé el código del collar</Text>
           </View>
         </TouchableOpacity>
         
         <TouchableOpacity 
-          style={[styles.chipOption, hasChip === false && styles.chipOptionSelected]} 
-          onPress={() => setHasChip(false)}
+          style={[styles.chipOption, hasCollar === false && styles.chipOptionSelected]} 
+          onPress={() => setHasCollar(false)}
         >
-          <RadioButton selected={hasChip === false} color="#F4B740" />
+          <RadioButton selected={hasCollar === false} color="#F4B740" />
           <View style={styles.chipOptionContent}>
-            <Text style={[styles.chipOptionTitle, hasChip === false && styles.chipOptionTitleSelected]}>
-              No tiene chip aún
+            <Text style={[styles.chipOptionTitle, hasCollar === false && styles.chipOptionTitleSelected]}>
+              Aún no tengo collar
             </Text>
-            <Text style={styles.chipOptionSubtitle}>Puedes agregarlo después</Text>
+            <Text style={styles.chipOptionSubtitle}>Lo agregaré cuando lo compre</Text>
           </View>
         </TouchableOpacity>
         
-        {hasChip && (
+        {hasCollar && (
           <View style={styles.scanSection}>
-            <TouchableOpacity style={styles.scanButton} onPress={handleScanChip}>
-              <Ionicons name="qr-code-outline" size={60} color="#F4B740" />
-              <Text style={styles.scanButtonText}>Escanear Chip</Text>
+            <TouchableOpacity style={styles.scanButton} onPress={handleScanCollar}>
+              <Ionicons name="camera-outline" size={60} color="#F4B740" />
+              <Text style={styles.scanButtonText}>Escanear Código del Collar</Text>
             </TouchableOpacity>
             
-            <Text style={styles.orText}>O ingresa manualmente:</Text>
+            <Text style={styles.orText}>O ingresa código manualmente:</Text>
             
             <TextInput
-              style={[styles.chipInput, chipVerified && styles.chipInputVerified]}
-              placeholder="CHIP-XXXX-XXXX-XXXX"
-              value={chipCode}
-              onChangeText={handleChipCodeChange}
+              style={[styles.chipInput, collarVerified && styles.chipInputVerified]}
+              placeholder="WUA-XXXX-XXXX"
+              value={collarCode}
+              onChangeText={handleCollarCodeChange}
               placeholderTextColor="#999"
               autoCapitalize="characters"
             />
             
-            {chipVerified && (
+            {collarVerified && (
               <View style={styles.successBanner}>
                 <Ionicons name="checkmark-circle" size={20} color="#4CAF50" />
-                <Text style={styles.successBannerText}>¡Chip verificado! GPS activado</Text>
+                <Text style={styles.successBannerText}>¡Collar verificado! GPS activado</Text>
               </View>
             )}
+          </View>
+        )}
+        
+        {hasCollar === false && (
+          <View style={styles.infoBox}>
+            <Ionicons name="information-circle" size={24} color="#F4B740" />
+            <Text style={styles.infoText}>Podrás agregar el collar GPS más tarde desde el perfil de tu mascota</Text>
           </View>
         )}
       </View>
@@ -717,67 +697,7 @@ export const AddPetScreen: React.FC<AddPetScreenProps> = ({ navigation, route })
     </View>
   );
 
-  const renderStep4 = () => (
-    <View style={styles.stepContainer}>
-      <Text style={styles.stepTitle}>Código QR Generado</Text>
-      
-      <View style={styles.qrContainer}>
-        {generatedQR ? (
-          <View style={styles.qrCodeWrapper}>
-            <QRCode
-              value={generatedQR}
-              size={200}
-              color={Colors.text}
-              backgroundColor={Colors.white}
-            />
-          </View>
-        ) : (
-          <View style={styles.qrPlaceholder}>
-            <Ionicons name="qr-code-outline" size={100} color="#DDD" />
-            <Text style={styles.qrPlaceholderText}>Generando QR...</Text>
-          </View>
-        )}
-        
-        <View style={styles.qrInfoContainer}>
-          <Text style={styles.qrInfoTitle}>Tu mascota ahora tiene:</Text>
-          
-          <View style={styles.qrInfoItem}>
-            <Ionicons name="checkmark-circle" size={20} color="#4CAF50" />
-            <Text style={styles.qrInfoText}>Código QR único e irrepetible</Text>
-          </View>
-          
-          <View style={styles.qrInfoItem}>
-            <Ionicons name="shield-checkmark" size={20} color="#4CAF50" />
-            <Text style={styles.qrInfoText}>Información segura y protegida</Text>
-          </View>
-          
-          <View style={styles.qrInfoItem}>
-            <Ionicons name="notifications" size={20} color="#4CAF50" />
-            <Text style={styles.qrInfoText}>Notificaciones si es encontrada</Text>
-          </View>
-          
-          <View style={styles.qrInfoItem}>
-            <Ionicons name="location" size={20} color="#4CAF50" />
-            <Text style={styles.qrInfoText}>Geolocalización del escaneo</Text>
-          </View>
-        </View>
-
-        {generatedQR && (
-          <View style={styles.qrActions}>
-            <TouchableOpacity style={styles.qrActionButton}>
-              <Ionicons name="download-outline" size={20} color="#F4B740" />
-              <Text style={styles.qrActionButtonText}>Descargar QR</Text>
-            </TouchableOpacity>
-            
-            <TouchableOpacity style={styles.qrActionButton}>
-              <Ionicons name="share-outline" size={20} color="#F4B740" />
-              <Text style={styles.qrActionButtonText}>Compartir</Text>
-            </TouchableOpacity>
-          </View>
-        )}
-      </View>
-    </View>
-  );
+  // Removed QR step - no longer needed
 
   return (
     <KeyboardAvoidingView 
@@ -806,29 +726,19 @@ export const AddPetScreen: React.FC<AddPetScreenProps> = ({ navigation, route })
         {currentStep === 1 && renderStep1()}
         {currentStep === 2 && renderStep2()}
         {currentStep === 3 && renderStep3()}
-        {currentStep === 4 && renderStep4()}
       </ScrollView>
 
       {/* Footer Actions */}
       <View style={styles.footer}>
-        {currentStep < 4 ? (
-          <TouchableOpacity
-            style={[styles.nextButton, !isValid && styles.nextButtonDisabled]}
-            onPress={currentStep === 3 ? handleSubmit(onSubmit) : handleNext}
-            disabled={!isValid || isLoading}
-          >
-            <Text style={styles.nextButtonText}>
-              {isLoading ? 'Guardando...' : currentStep === 3 ? 'Generar QR' : 'Siguiente'}
-            </Text>
-          </TouchableOpacity>
-        ) : (
-          <TouchableOpacity
-            style={styles.finishButton}
-            onPress={finishAndGoHome}
-          >
-            <Text style={styles.finishButtonText}>Finalizar</Text>
-          </TouchableOpacity>
-        )}
+        <TouchableOpacity
+          style={[styles.nextButton, !isValid && styles.nextButtonDisabled]}
+          onPress={currentStep === 3 ? handleSubmit(onSubmit) : handleNext}
+          disabled={!isValid || isLoading}
+        >
+          <Text style={styles.nextButtonText}>
+            {isLoading ? 'Guardando...' : currentStep === 3 ? 'Registrar Mascota' : 'Siguiente'}
+          </Text>
+        </TouchableOpacity>
       </View>
       
       {/* Custom Alert Component */}
@@ -909,7 +819,7 @@ const styles = StyleSheet.create({
   progressLabels: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    width: 280,
+    width: 240,
   },
   progressLabel: {
     fontSize: 12,
@@ -1103,56 +1013,6 @@ const styles = StyleSheet.create({
     elevation: 4,
     marginBottom: 24,
   },
-  qrPlaceholder: {
-    alignItems: 'center',
-    padding: 40,
-  },
-  qrPlaceholderText: {
-    fontSize: 16,
-    color: '#999',
-    marginTop: 12,
-  },
-  qrInfoContainer: {
-    width: '100%',
-    marginBottom: 24,
-  },
-  qrInfoTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#2A2A2A',
-    textAlign: 'center',
-    marginBottom: 16,
-  },
-  qrInfoItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 8,
-    gap: 12,
-  },
-  qrInfoText: {
-    fontSize: 14,
-    color: '#4A4A4A',
-    flex: 1,
-  },
-  qrActions: {
-    flexDirection: 'row',
-    gap: 16,
-  },
-  qrActionButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#F4B740',
-    gap: 6,
-  },
-  qrActionButtonText: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: '#F4B740',
-  },
   footer: {
     padding: 20,
     backgroundColor: '#FFF',
@@ -1287,6 +1147,23 @@ const styles = StyleSheet.create({
     color: '#4CAF50',
     fontWeight: '600',
     marginLeft: 8,
+  },
+  infoBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFF8E7',
+    padding: 16,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#F4B740',
+    marginTop: 20,
+  },
+  infoText: {
+    flex: 1,
+    fontSize: 14,
+    color: '#666',
+    marginLeft: 12,
+    lineHeight: 20,
   },
 });
 

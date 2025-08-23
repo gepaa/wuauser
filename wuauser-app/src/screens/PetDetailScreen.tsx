@@ -15,7 +15,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as MediaLibrary from 'expo-media-library';
 import * as FileSystem from 'expo-file-system';
-import ViewShot from 'react-native-view-shot';
+// ViewShot import removed - no longer needed
 import { Colors } from '../constants/colors';
 import { petService, PetData, VaccinationRecord, MedicalRecord } from '../services/petService';
 import medicalRecordService from '../services/medicalRecordService';
@@ -39,12 +39,12 @@ export const PetDetailScreen: React.FC<PetDetailScreenProps> = ({ navigation, ro
   const { petId, petData: initialPetData } = route.params;
   
   const [petData, setPetData] = useState<PetData | null>(initialPetData || null);
-  const [activeTab, setActiveTab] = useState<'info' | 'qr' | 'medical' | 'gallery'>('info');
+  const [activeTab, setActiveTab] = useState<'info' | 'collar' | 'medical' | 'gallery'>('info');
   const [isLoading, setIsLoading] = useState(!initialPetData);
   const [refreshing, setRefreshing] = useState(false);
   const [vaccinations, setVaccinations] = useState<VaccinationRecord[]>([]);
   const [medicalRecords, setMedicalRecords] = useState<MedicalRecord[]>([]);
-  const [qrRef, setQrRef] = useState<ViewShot | null>(null);
+  // Removed QR ref - no longer needed
   
   // New medical record system
   const [medicalStats, setMedicalStats] = useState<MedicalRecordStats | null>(null);
@@ -134,44 +134,22 @@ export const PetDetailScreen: React.FC<PetDetailScreenProps> = ({ navigation, ro
     });
   };
 
-  const handleShareQR = async () => {
-    if (!petData?.qr_id) return;
+  const handleShareCollar = async () => {
+    if (!petData?.collar_id) return;
 
     try {
-      const qrUrl = `https://wuauser.com/pet/${petData.qr_id}`;
+      const collarUrl = `https://wuauser.com/pet/${petData.collar_id}`;
       await Share.share({
-        message: `¡Ayuda a ${petData.nombre} a volver a casa! Escanea este código QR: ${qrUrl}`,
-        url: qrUrl,
-        title: `Código QR de ${petData.nombre}`,
+        message: `¡Ayuda a ${petData.nombre} a volver a casa! Collar ID: ${petData.collar_id}`,
+        url: collarUrl,
+        title: `Collar GPS de ${petData.nombre}`,
       });
     } catch (error) {
-      console.error('Error sharing QR:', error);
+      console.error('Error sharing collar:', error);
     }
   };
 
-  const handleDownloadQR = async () => {
-    if (!qrRef || !petData) return;
-
-    try {
-      const hasPermission = await MediaLibrary.requestPermissionsAsync();
-      if (!hasPermission.granted) {
-        Alert.alert('Permisos', 'Se necesitan permisos para guardar la imagen');
-        return;
-      }
-
-      const uri = await qrRef.capture();
-      const asset = await MediaLibrary.createAssetAsync(uri);
-      await MediaLibrary.createAlbumAsync('Wuauser QR', asset, false);
-      
-      Alert.alert(
-        '¡Guardado!',
-        `El código QR de ${petData.nombre} se guardó en tu galería.`
-      );
-    } catch (error) {
-      console.error('Error downloading QR:', error);
-      Alert.alert('Error', 'No se pudo guardar el código QR');
-    }
-  };
+  // QR download function removed - no longer needed
 
   const calculateAge = (birthDate: string): string => {
     const birth = new Date(birthDate);
@@ -205,16 +183,16 @@ export const PetDetailScreen: React.FC<PetDetailScreenProps> = ({ navigation, ro
       </TouchableOpacity>
 
       <TouchableOpacity
-        style={[styles.tab, activeTab === 'qr' && styles.activeTab]}
-        onPress={() => setActiveTab('qr')}
+        style={[styles.tab, activeTab === 'collar' && styles.activeTab]}
+        onPress={() => setActiveTab('collar')}
       >
         <Ionicons 
-          name="qr-code-outline" 
+          name="watch-outline" 
           size={20} 
-          color={activeTab === 'qr' ? Colors.primary : '#666'} 
+          color={activeTab === 'collar' ? Colors.primary : '#666'} 
         />
-        <Text style={[styles.tabText, activeTab === 'qr' && styles.activeTabText]}>
-          QR
+        <Text style={[styles.tabText, activeTab === 'collar' && styles.activeTabText]}>
+          Collar
         </Text>
       </TouchableOpacity>
 
@@ -297,12 +275,12 @@ export const PetDetailScreen: React.FC<PetDetailScreenProps> = ({ navigation, ro
           </View>
         )}
 
-        {petData?.chip_numero && (
+        {petData?.collar_id && (
           <View style={styles.infoRow}>
-            <Ionicons name="radio" size={20} color={Colors.primary} />
+            <Ionicons name="watch" size={20} color={Colors.primary} />
             <View style={styles.infoTextContainer}>
-              <Text style={styles.infoLabel}>Microchip</Text>
-              <Text style={styles.infoValue}>{petData.chip_numero}</Text>
+              <Text style={styles.infoLabel}>Collar GPS</Text>
+              <Text style={styles.infoValue}>{petData.collar_id}</Text>
             </View>
           </View>
         )}
@@ -352,51 +330,101 @@ export const PetDetailScreen: React.FC<PetDetailScreenProps> = ({ navigation, ro
     </View>
   );
 
-  const renderQRTab = () => (
+  const renderCollarTab = () => (
     <View style={styles.tabContent}>
-      <Text style={styles.tabTitle}>Código QR de {petData?.nombre}</Text>
+      <Text style={styles.tabTitle}>Collar GPS de {petData?.nombre}</Text>
       
-      <ViewShot ref={setQrRef} style={styles.qrContainer}>
-        <View style={styles.qrCard}>
-          {petData?.qr_id && (
-            <View style={{ width: 250, height: 250, backgroundColor: '#f0f0f0', justifyContent: 'center', alignItems: 'center', borderRadius: 8 }}>
-              <Ionicons name="qr-code-outline" size={100} color="#ccc" />
-              <Text style={{ color: '#999', marginTop: 8, textAlign: 'center' }}>QR Code</Text>
+      {/* Collar GPS Section */}
+      <View style={styles.collarSection}>
+        {petData?.collar_id ? (
+          <View style={styles.collarActive}>
+            <View style={styles.collarHeader}>
+              <Ionicons name="checkmark-circle" color="#4CAF50" size={32} />
+              <View style={styles.collarInfo}>
+                <Text style={styles.collarStatus}>Collar GPS Activo</Text>
+                <Text style={styles.collarId}>ID: {petData.collar_id}</Text>
+                <Text style={styles.collarSignal}>Señal: Fuerte • Última actualización: Hace 2 min</Text>
+              </View>
             </View>
-          )}
-          
-          <View style={styles.qrInfo}>
-            <Text style={styles.qrPetName}>{petData?.nombre}</Text>
-            <Text style={styles.qrPetInfo}>
-              {petData?.especie} • {petData?.raza}
-            </Text>
-            <Text style={styles.qrMessage}>
-              ¡Ayúdame a volver a casa!
-            </Text>
+            
+            <View style={styles.collarActions}>
+              <TouchableOpacity style={styles.trackButton} onPress={() => navigation.navigate('MapScreen')}>
+                <LinearGradient
+                  colors={['#4ECDC4', '#95E1D3']}
+                  style={styles.collarActionGradient}
+                >
+                  <Ionicons name="location" size={20} color="#FFF" />
+                  <Text style={styles.collarActionText}>Ver en Mapa</Text>
+                </LinearGradient>
+              </TouchableOpacity>
+              
+              <TouchableOpacity style={styles.configButton}>
+                <LinearGradient
+                  colors={['#F4B740', '#FFD54F']}
+                  style={styles.collarActionGradient}
+                >
+                  <Ionicons name="settings" size={20} color="#FFF" />
+                  <Text style={styles.collarActionText}>Configurar</Text>
+                </LinearGradient>
+              </TouchableOpacity>
+            </View>
+            
+            <View style={styles.collarStats}>
+              <View style={styles.statItem}>
+                <Text style={styles.statValue}>85%</Text>
+                <Text style={styles.statLabel}>Batería</Text>
+              </View>
+              <View style={styles.statItem}>
+                <Text style={styles.statValue}>24h</Text>
+                <Text style={styles.statLabel}>Tiempo activo</Text>
+              </View>
+              <View style={styles.statItem}>
+                <Text style={styles.statValue}>2.3km</Text>
+                <Text style={styles.statLabel}>Distancia hoy</Text>
+              </View>
+            </View>
           </View>
-        </View>
-      </ViewShot>
-
-      <View style={styles.qrActions}>
-        <TouchableOpacity style={styles.qrActionButton} onPress={handleShareQR}>
-          <LinearGradient
-            colors={['#4ECDC4', '#95E1D3']}
-            style={styles.qrActionGradient}
-          >
-            <Ionicons name="share-outline" size={24} color="#FFF" />
-          </LinearGradient>
-          <Text style={styles.qrActionText}>Compartir</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity style={styles.qrActionButton} onPress={handleDownloadQR}>
-          <LinearGradient
-            colors={['#F4B740', '#FFD54F']}
-            style={styles.qrActionGradient}
-          >
-            <Ionicons name="download-outline" size={24} color="#FFF" />
-          </LinearGradient>
-          <Text style={styles.qrActionText}>Descargar</Text>
-        </TouchableOpacity>
+        ) : (
+          <View style={styles.noCollar}>
+            <View style={styles.noCollarHeader}>
+              <Ionicons name="alert-circle" color="#FFB800" size={32} />
+              <View style={styles.collarInfo}>
+                <Text style={styles.collarStatus}>Sin Collar GPS</Text>
+                <Text style={styles.noCollarText}>Tu mascota aún no tiene collar Wuauser</Text>
+              </View>
+            </View>
+            
+            <TouchableOpacity style={styles.addCollarButton}>
+              <LinearGradient
+                colors={['#F4B740', '#FFD54F']}
+                style={styles.addCollarGradient}
+              >
+                <Ionicons name="add-circle" size={24} color="#FFF" />
+                <Text style={styles.addCollarText}>Agregar Collar Wuauser</Text>
+              </LinearGradient>
+            </TouchableOpacity>
+            
+            <View style={styles.benefitsSection}>
+              <Text style={styles.benefitsTitle}>Beneficios del collar GPS:</Text>
+              <View style={styles.benefitItem}>
+                <Ionicons name="location" size={16} color="#4CAF50" />
+                <Text style={styles.benefitText}>Ubicación en tiempo real</Text>
+              </View>
+              <View style={styles.benefitItem}>
+                <Ionicons name="shield-checkmark" size={16} color="#4CAF50" />
+                <Text style={styles.benefitText}>Zonas seguras configurables</Text>
+              </View>
+              <View style={styles.benefitItem}>
+                <Ionicons name="notifications" size={16} color="#4CAF50" />
+                <Text style={styles.benefitText}>Alertas instantáneas</Text>
+              </View>
+              <View style={styles.benefitItem}>
+                <Ionicons name="battery-half" size={16} color="#4CAF50" />
+                <Text style={styles.benefitText}>7 días de batería</Text>
+              </View>
+            </View>
+          </View>
+        )}
       </View>
 
       <View style={styles.qrInstructions}>
@@ -432,7 +460,7 @@ export const PetDetailScreen: React.FC<PetDetailScreenProps> = ({ navigation, ro
       petName: petData?.nombre || 'Mascota',
       petAge: petData?.fecha_nacimiento ? calculateAge(petData.fecha_nacimiento) : undefined,
       petBreed: petData?.raza,
-      chipId: petData?.chip_numero
+      collarId: petData?.collar_id
     });
   };
 
@@ -756,7 +784,7 @@ export const PetDetailScreen: React.FC<PetDetailScreenProps> = ({ navigation, ro
         showsVerticalScrollIndicator={false}
       >
         {activeTab === 'info' && renderInfoTab()}
-        {activeTab === 'qr' && renderQRTab()}
+        {activeTab === 'collar' && renderCollarTab()}
         {activeTab === 'medical' && renderMedicalTab()}
         {activeTab === 'gallery' && renderGalleryTab()}
       </ScrollView>
@@ -1369,6 +1397,140 @@ const styles = StyleSheet.create({
   locationAlertSubtitle: {
     fontSize: 14,
     color: '#666',
+  },
+  // Collar GPS Styles
+  collarSection: {
+    marginTop: 16,
+  },
+  collarActive: {
+    backgroundColor: '#E8F5E8',
+    borderRadius: 16,
+    padding: 20,
+    borderWidth: 1,
+    borderColor: '#4CAF50',
+  },
+  collarHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  collarInfo: {
+    flex: 1,
+    marginLeft: 12,
+  },
+  collarStatus: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#2A2A2A',
+    marginBottom: 4,
+  },
+  collarId: {
+    fontSize: 14,
+    color: '#4CAF50',
+    fontWeight: '600',
+    marginBottom: 2,
+  },
+  collarSignal: {
+    fontSize: 12,
+    color: '#666',
+  },
+  collarActions: {
+    flexDirection: 'row',
+    gap: 12,
+    marginBottom: 16,
+  },
+  trackButton: {
+    flex: 1,
+  },
+  configButton: {
+    flex: 1,
+  },
+  collarActionGradient: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 12,
+    borderRadius: 8,
+    gap: 8,
+  },
+  collarActionText: {
+    color: '#FFF',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  collarStats: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    backgroundColor: 'rgba(255, 255, 255, 0.8)',
+    borderRadius: 12,
+    paddingVertical: 16,
+  },
+  statItem: {
+    alignItems: 'center',
+  },
+  statValue: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#2A2A2A',
+  },
+  statLabel: {
+    fontSize: 12,
+    color: '#666',
+    marginTop: 2,
+  },
+  noCollar: {
+    backgroundColor: '#FFF8E7',
+    borderRadius: 16,
+    padding: 20,
+    borderWidth: 1,
+    borderColor: '#FFB800',
+  },
+  noCollarHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  noCollarText: {
+    fontSize: 14,
+    color: '#666',
+    marginTop: 4,
+  },
+  addCollarButton: {
+    marginBottom: 20,
+  },
+  addCollarGradient: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 14,
+    borderRadius: 12,
+    gap: 8,
+  },
+  addCollarText: {
+    color: '#FFF',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  benefitsSection: {
+    backgroundColor: 'rgba(255, 255, 255, 0.8)',
+    borderRadius: 12,
+    padding: 16,
+  },
+  benefitsTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#2A2A2A',
+    marginBottom: 12,
+  },
+  benefitItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+    gap: 8,
+  },
+  benefitText: {
+    fontSize: 14,
+    color: '#4A4A4A',
   },
 });
 
