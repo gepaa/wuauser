@@ -15,6 +15,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { veterinarianService, VeterinarianData } from '../services/veterinarianService';
+import { chatService } from '../services/chatService';
 import { Colors } from '../constants/colors';
 
 const { width } = Dimensions.get('window');
@@ -83,18 +84,37 @@ export const VetPublicProfileScreen: React.FC<VetPublicProfileProps> = ({ naviga
     });
   };
 
-  const handleSendMessage = () => {
-    Alert.alert(
-      'Enviar Mensaje',
-      '¿Te gustaría enviar un mensaje a este veterinario?',
-      [
-        { text: 'Cancelar', style: 'cancel' },
-        { text: 'Enviar', onPress: () => {
-          // TODO: Navigate to chat screen
-          console.log('Navigate to chat screen');
-        }}
-      ]
-    );
+  const handleSendMessage = async () => {
+    try {
+      if (!vetData) return;
+      
+      // Mock current user ID - in real app get from auth service
+      const currentUserId = 'owner_current';
+      const vetId = vetData.id;
+      
+      // Check if chat already exists
+      const existingChats = await chatService.getChats(currentUserId);
+      const existingChat = existingChats.find(chat => 
+        chat.participantIds.includes(vetId)
+      );
+      
+      if (existingChat) {
+        // Navigate to existing chat
+        navigation.navigate('Chat', { chat: existingChat });
+      } else {
+        // Create new chat
+        const newChat = await chatService.createChat(currentUserId, vetId);
+        
+        // Update chat with vet info
+        newChat.participants.vet.name = vetData.nombre_completo || vetData.email.split('@')[0];
+        newChat.participants.vet.clinic = vetData.nombre_clinica;
+        
+        navigation.navigate('Chat', { chat: newChat });
+      }
+    } catch (error) {
+      console.error('Error creating/opening chat:', error);
+      Alert.alert('Error', 'No se pudo abrir la conversación');
+    }
   };
 
   const handleDirections = () => {

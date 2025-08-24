@@ -22,6 +22,8 @@ import { EmailConfirmScreen } from '../screens/EmailConfirmScreen';
 import { HomeScreen } from '../screens/HomeScreen';
 import { MedicalRecordScreen } from '../screens/MedicalRecordScreen';
 import { AddMedicalRecordScreen } from '../screens/AddMedicalRecordScreen';
+import { ChatListScreen } from '../screens/ChatListScreen';
+import { ChatScreen } from '../screens/ChatScreen';
 import { TabNavigator } from './TabNavigator';
 
 const Stack = createStackNavigator();
@@ -77,6 +79,8 @@ const AppContent: React.FC = () => {
       <Stack.Screen name="EditProfile" component={EditProfileScreen} />
       <Stack.Screen name="MedicalRecord" component={MedicalRecordScreen} />
       <Stack.Screen name="AddMedicalRecord" component={AddMedicalRecordScreen} />
+      <Stack.Screen name="ChatList" component={ChatListScreen} />
+      <Stack.Screen name="Chat" component={ChatScreen} />
     </Stack.Navigator>
   );
 };

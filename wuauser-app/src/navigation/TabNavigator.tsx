@@ -9,12 +9,15 @@ import { MapScreen } from '../screens/MapScreen';
 import { ProfileScreen } from '../screens/ProfileScreen';
 import { VetDashboardScreen } from '../screens/VetDashboardScreen';
 import { VetAppointmentsScreen } from '../screens/VetAppointmentsScreen';
+import { ChatListScreen } from '../screens/ChatListScreen';
 import roleService, { UserRole } from '../services/roleService';
+import { chatService } from '../services/chatService';
 
 const Tab = createBottomTabNavigator();
 
 export const TabNavigator: React.FC = () => {
   const [currentRole, setCurrentRole] = useState<UserRole>('dueno');
+  const [unreadCount, setUnreadCount] = useState<number>(0);
 
   useEffect(() => {
     // Initialize role service and subscribe to changes
@@ -24,6 +27,7 @@ export const TabNavigator: React.FC = () => {
     };
 
     initializeRole();
+    loadUnreadCount();
 
     // Subscribe to role changes
     const unsubscribe = roleService.subscribe((newRole) => {
@@ -33,6 +37,17 @@ export const TabNavigator: React.FC = () => {
     return unsubscribe;
   }, []);
 
+  const loadUnreadCount = async () => {
+    try {
+      // Mock current user ID - in real app get from auth service
+      const userId = 'owner_current';
+      const count = await chatService.getUnreadCount(userId);
+      setUnreadCount(count);
+    } catch (error) {
+      console.error('Error loading unread count:', error);
+    }
+  };
+
   // Dynamic tab configuration based on role
   const getTabConfig = () => {
     if (currentRole === 'veterinario') {
@@ -40,6 +55,7 @@ export const TabNavigator: React.FC = () => {
         tabs: [
           { name: 'Dashboard', component: VetDashboardScreen, label: 'Panel', icon: 'medical' },
           { name: 'Citas', component: VetAppointmentsScreen, label: 'Citas', icon: 'calendar' },
+          { name: 'ChatList', component: ChatListScreen, label: 'Mensajes', icon: 'chatbubbles' },
           { name: 'Mapa', component: MapScreen, label: 'Mapa', icon: 'map' },
           { name: 'Perfil', component: ProfileScreen, label: 'Perfil', icon: 'person' }
         ]
@@ -49,6 +65,7 @@ export const TabNavigator: React.FC = () => {
         tabs: [
           { name: 'Inicio', component: HomeScreen, label: 'Inicio', icon: 'home' },
           { name: 'MisMascotas', component: MyPetsScreen, label: 'Mis Mascotas', icon: 'paw' },
+          { name: 'ChatList', component: ChatListScreen, label: 'Mensajes', icon: 'chatbubbles' },
           { name: 'Mapa', component: MapScreen, label: 'Mapa', icon: 'map' },
           { name: 'Perfil', component: ProfileScreen, label: 'Perfil', icon: 'person' }
         ]
@@ -106,7 +123,8 @@ export const TabNavigator: React.FC = () => {
           name={tab.name} 
           component={tab.component}
           options={{
-            tabBarLabel: tab.label
+            tabBarLabel: tab.label,
+            tabBarBadge: tab.name === 'ChatList' && unreadCount > 0 ? unreadCount : undefined
           }}
         />
       ))}
