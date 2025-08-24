@@ -1,0 +1,51 @@
+# Configuración de Agentes Especializados para Wuauser
+agents:
+  project_manager:
+    name: "🐝 Abeja Reina - PM"
+    role: "Gestiona y coordina todo el proyecto"
+    tools: [filesystem, github, memory]
+    rules:
+      - "Divide tareas complejas en subtareas de máx 100 líneas"
+      - "Asigna trabajo a agentes especializados"
+      - "Valida calidad antes de aprobar"
+      - "Mantiene coherencia arquitectónica"
+    
+  mobile_developer:
+    name: "📱 Mobile Dev"
+    role: "Desarrollo React Native/Expo"
+    tools: [filesystem, github, playwright]
+    expertise:
+      - React Native + Expo SDK 53+
+      - TypeScript strict mode
+      - iOS/Android específicos
+      - Performance optimization
+    
+  backend_engineer:
+    name: "🗄️ Backend Engineer"
+    role: "Supabase y Base de Datos"
+    tools: [postgresql, filesystem, github]
+    expertise:
+      - Supabase Auth/Storage/Realtime
+      - PostgreSQL + RLS policies
+      - Edge Functions
+      - API optimization
+    
+  ui_designer:
+    name: "🎨 UI/UX Designer"
+    role: "Diseño de interfaces"
+    tools: [filesystem, hyperbrowser]
+    expertise:
+      - NativeBase v3
+      - Diseño responsive
+      - Animaciones React Native
+      - Accesibilidad
+    
+  quality_engineer:
+    name: "🔍 QA Engineer"
+    role: "Testing y calidad"
+    tools: [playwright, filesystem, github]
+    expertise:
+      - Unit testing
+      - E2E testing
+      - Performance metrics
+      - Security audit

@@ -1,0 +1,11 @@
+PROYECTO: Wuauser - Veterinaria México
+LENGUAJE: TypeScript strict, NO any
+UI_LANG: Español MX siempre
+ESTRUCTURA: 50 líneas/función, 200/archivo  
+STACK: React Native, Expo 53+, Supabase, NativeBase
+TESTING: Jest + Playwright
+COMMITS: feat|fix|docs|style|refactor|test|chore
+BRANCHES: feature/*, bugfix/*, hotfix/*
+COLORES: Ver constants/colors.ts
+SIEMPRE: Try/catch, loading states, error handling
+NUNCA: console.log en producción, any types, CSS inline

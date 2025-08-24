@@ -1,0 +1,72 @@
+# Workflows Automatizados para Wuauser
+workflows:
+  nueva_funcionalidad:
+    name: "Nueva Funcionalidad Completa"
+    steps:
+      - name: "Análisis"
+        agent: project_manager
+        actions:
+          - Revisar requerimientos
+          - Crear plan de implementación
+          - Asignar tareas a agentes
+      
+      - name: "Backend"
+        agent: backend_engineer
+        actions:
+          - Diseñar esquema de BD
+          - Crear tablas en Supabase
+          - Implementar RLS policies
+          - Crear servicios TypeScript
+      
+      - name: "Frontend"
+        agent: mobile_developer
+        actions:
+          - Crear componentes
+          - Implementar screens
+          - Conectar con servicios
+          - Añadir navegación
+      
+      - name: "UI Polish"
+        agent: ui_designer
+        actions:
+          - Aplicar design tokens
+          - Añadir animaciones
+          - Verificar responsive
+          - Validar accesibilidad
+      
+      - name: "Testing"
+        agent: quality_engineer
+        actions:
+          - Escribir unit tests
+          - Ejecutar E2E tests
+          - Verificar performance
+          - Security check
+      
+      - name: "Deploy"
+        agent: project_manager
+        actions:
+          - Code review final
+          - Merge to main
+          - Deploy to staging
+          - Actualizar documentación
+
+  fix_bug:
+    name: "Arreglar Bug"
+    steps:
+      - name: "Identificar"
+        agent: quality_engineer
+        actions:
+          - Reproducir bug
+          - Identificar causa raíz
+          
+      - name: "Solucionar"
+        agent: mobile_developer
+        actions:
+          - Implementar fix
+          - Añadir test preventivo
+          
+      - name: "Verificar"
+        agent: quality_engineer
+        actions:
+          - Confirmar solución
+          - Regression testing
