@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { StyleSheet, Alert, Animated } from 'react-native';
+import { StyleSheet, Alert, Animated, BackHandler } from 'react-native';
 import MapView, { Marker, PROVIDER_GOOGLE, Callout } from 'react-native-maps';
 import * as Location from 'expo-location';
 import {
@@ -16,7 +16,6 @@ import {
   Pressable,
   Icon,
   Input,
-  ScrollView,
   Modal,
   Divider,
   Center,
@@ -27,6 +26,7 @@ import { mapService, ClinicLocation, SearchFilters } from '../services/mapServic
 import chipTrackingService from '../services/chipTrackingService';
 import { PetLocation } from '../types/chipTracking';
 import { colors } from '../constants/colors';
+import { navigationTester } from '../utils/navigationTest';
 
 interface MapScreenProps {
   navigation: any;
@@ -44,6 +44,12 @@ interface FilterState {
 }
 
 export const MapScreen: React.FC<MapScreenProps> = ({ navigation }) => {
+  
+  // Log navigation to MapScreen
+  React.useEffect(() => {
+    navigationTester.logNavigation('MapScreen');
+  }, []);
+  
   const [location, setLocation] = useState<Location.LocationObjectCoords | null>(null);
   const [clinicas, setClinicas] = useState<ClinicLocation[]>([]);
   const [petsWithChip, setPetsWithChip] = useState<PetLocation[]>([]);
@@ -60,6 +66,14 @@ export const MapScreen: React.FC<MapScreenProps> = ({ navigation }) => {
     specialties: [],
     services: []
   });
+
+  useEffect(() => {
+    const backHandler = BackHandler.addEventListener('hardwareBackPress', () => {
+      return false;
+    });
+
+    return () => backHandler.remove();
+  }, []);
 
   useEffect(() => {
     initializeMap();
@@ -328,84 +342,82 @@ export const MapScreen: React.FC<MapScreenProps> = ({ navigation }) => {
               Filtros de Búsqueda
             </Text>
           </Modal.Header>
-          <Modal.Body>
-            <ScrollView showsVerticalScrollIndicator={false}>
-              <VStack space={6}>
-                {/* Radio */}
-                <Box>
-                  <Text fontSize="md" fontWeight="600" mb={3} color={colors.text}>
-                    Radio de búsqueda: {filters.radius} km
-                  </Text>
-                  <Slider
-                    value={filters.radius}
-                    minValue={5}
-                    maxValue={50}
-                    step={5}
-                    onChange={(value) => setFilters(prev => ({ ...prev, radius: value }))}
+          <Modal.Body px={4} py={6}>
+            <VStack space={6} flex={1}>
+              {/* Radio */}
+              <Box>
+                <Text fontSize="md" fontWeight="600" mb={3} color={colors.text}>
+                  Radio de búsqueda: {filters.radius} km
+                </Text>
+                <Slider
+                  value={filters.radius}
+                  minValue={5}
+                  maxValue={50}
+                  step={5}
+                  onChange={(value) => setFilters(prev => ({ ...prev, radius: value }))}
+                  colorScheme="yellow"
+                >
+                  <Slider.Track bg="gray.300">
+                    <Slider.FilledTrack bg={colors.primary} />
+                  </Slider.Track>
+                  <Slider.Thumb bg={colors.primary} />
+                </Slider>
+                <HStack justifyContent="space-between" mt={2}>
+                  <Text fontSize="sm" color="muted.500">5 km</Text>
+                  <Text fontSize="sm" color="muted.500">50 km</Text>
+                </HStack>
+              </Box>
+
+              <Divider />
+
+              {/* Rating */}
+              <Box>
+                <Text fontSize="md" fontWeight="600" mb={3} color={colors.text}>
+                  Calificación mínima
+                </Text>
+                <Select
+                  selectedValue={filters.minRating.toString()}
+                  onValueChange={(value) => setFilters(prev => ({ ...prev, minRating: parseFloat(value) }))}
+                  placeholder="Cualquier calificación"
+                  _selectedItem={{
+                    bg: colors.primary,
+                    endIcon: <CheckIcon size={5} />
+                  }}
+                >
+                  <Select.Item label="Cualquier calificación" value="0" />
+                  <Select.Item label="3.0 estrellas o más" value="3" />
+                  <Select.Item label="4.0 estrellas o más" value="4" />
+                  <Select.Item label="4.5 estrellas o más" value="4.5" />
+                </Select>
+              </Box>
+
+              <Divider />
+
+              {/* Emergency Filters */}
+              <VStack space={4}>
+                <Text fontSize="md" fontWeight="600" color={colors.text}>
+                  Servicios de Emergencia
+                </Text>
+                
+                <HStack justifyContent="space-between" alignItems="center">
+                  <Text fontSize="sm" color={colors.text}>Solo clínicas de emergencia</Text>
+                  <Switch
+                    isChecked={filters.emergencyOnly}
+                    onToggle={(value) => setFilters(prev => ({ ...prev, emergencyOnly: value }))}
                     colorScheme="yellow"
-                  >
-                    <Slider.Track bg="gray.300">
-                      <Slider.FilledTrack bg={colors.primary} />
-                    </Slider.Track>
-                    <Slider.Thumb bg={colors.primary} />
-                  </Slider>
-                  <HStack justifyContent="space-between" mt={2}>
-                    <Text fontSize="sm" color="muted.500">5 km</Text>
-                    <Text fontSize="sm" color="muted.500">50 km</Text>
-                  </HStack>
-                </Box>
-
-                <Divider />
-
-                {/* Rating */}
-                <Box>
-                  <Text fontSize="md" fontWeight="600" mb={3} color={colors.text}>
-                    Calificación mínima
-                  </Text>
-                  <Select
-                    selectedValue={filters.minRating.toString()}
-                    onValueChange={(value) => setFilters(prev => ({ ...prev, minRating: parseFloat(value) }))}
-                    placeholder="Cualquier calificación"
-                    _selectedItem={{
-                      bg: colors.primary,
-                      endIcon: <CheckIcon size={5} />
-                    }}
-                  >
-                    <Select.Item label="Cualquier calificación" value="0" />
-                    <Select.Item label="3.0 estrellas o más" value="3" />
-                    <Select.Item label="4.0 estrellas o más" value="4" />
-                    <Select.Item label="4.5 estrellas o más" value="4.5" />
-                  </Select>
-                </Box>
-
-                <Divider />
-
-                {/* Emergency Filters */}
-                <VStack space={4}>
-                  <Text fontSize="md" fontWeight="600" color={colors.text}>
-                    Servicios de Emergencia
-                  </Text>
-                  
-                  <HStack justifyContent="space-between" alignItems="center">
-                    <Text fontSize="sm" color={colors.text}>Solo clínicas de emergencia</Text>
-                    <Switch
-                      isChecked={filters.emergencyOnly}
-                      onToggle={(value) => setFilters(prev => ({ ...prev, emergencyOnly: value }))}
-                      colorScheme="yellow"
-                    />
-                  </HStack>
-                  
-                  <HStack justifyContent="space-between" alignItems="center">
-                    <Text fontSize="sm" color={colors.text}>Abiertas 24 horas</Text>
-                    <Switch
-                      isChecked={filters.emergency24h}
-                      onToggle={(value) => setFilters(prev => ({ ...prev, emergency24h: value }))}
-                      colorScheme="yellow"
-                    />
-                  </HStack>
-                </VStack>
+                  />
+                </HStack>
+                
+                <HStack justifyContent="space-between" alignItems="center">
+                  <Text fontSize="sm" color={colors.text}>Abiertas 24 horas</Text>
+                  <Switch
+                    isChecked={filters.emergency24h}
+                    onToggle={(value) => setFilters(prev => ({ ...prev, emergency24h: value }))}
+                    colorScheme="yellow"
+                  />
+                </HStack>
               </VStack>
-            </ScrollView>
+            </VStack>
           </Modal.Body>
           <Modal.Footer bg={colors.background} borderTopColor={colors.border}>
             <HStack space={3} width="100%" justifyContent="center">
