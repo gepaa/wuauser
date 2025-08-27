@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import * as Linking from 'expo-linking';
 import { useNavigation } from '@react-navigation/native';
+import { debugLogger } from '../utils/debugLogger';
 
 export const useDeepLinking = () => {
   const navigation = useNavigation();
@@ -35,6 +36,7 @@ export const useDeepLinking = () => {
     };
 
     // Escuchar URLs mientras la app está abierta
+    debugLogger.listener('Linking', 'added');
     const subscription = Linking.addEventListener('url', (event) => {
       handleDeepLink(event.url);
     });
@@ -43,6 +45,7 @@ export const useDeepLinking = () => {
     handleInitialURL();
 
     return () => {
+      debugLogger.listener('Linking', 'removed');
       subscription?.remove();
     };
   }, [navigation]);

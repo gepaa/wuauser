@@ -27,6 +27,8 @@
       "favicon": "./assets/favicon.png"
     },
     "scheme": "wuauser",
-    "plugins": []
+    "plugins": [
+      "expo-font"
+    ]
   }
 }

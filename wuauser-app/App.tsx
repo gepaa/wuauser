@@ -1,10 +1,13 @@
 import React, { useEffect, useState } from 'react';
+import { NativeBaseProvider } from 'native-base';
 import { AuthProvider } from './src/contexts/AuthContext';
 import { AppNavigator } from './src/navigation/AppNavigator';
 import { supabase } from './src/services/supabase';
 import * as SecureStore from 'expo-secure-store';
 import chipTrackingService from './src/services/chipTrackingService';
 import locationAlertsService from './src/services/locationAlertsService';
+import { debugLogger } from './src/utils/debugLogger';
+import DebugOverlay from './src/components/DebugOverlay';
 
 export default function App() {
   const [isReady, setIsReady] = useState(false);
@@ -115,9 +118,15 @@ export default function App() {
     return null;
   }
 
+  // Log provider initialization
+  debugLogger.context('App', 'Providers initializing', { isReady, initialRoute });
+
   return (
-    <AuthProvider>
-      <AppNavigator />
-    </AuthProvider>
+    <NativeBaseProvider>
+      <AuthProvider>
+        <AppNavigator />
+        <DebugOverlay />
+      </AuthProvider>
+    </NativeBaseProvider>
   );
 }
