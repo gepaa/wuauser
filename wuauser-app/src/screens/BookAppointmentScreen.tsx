@@ -71,14 +71,22 @@ export const BookAppointmentScreen: React.FC<BookAppointmentProps> = ({ navigati
 
   const initializeScreen = async () => {
     // Initialize notifications on app start
-    // try {
-    //   const notificationsEnabled = await appointmentService.initializeNotifications();
-    //   if (!notificationsEnabled) {
-    //     console.log('⚠️ Notifications not enabled - reminders will not work');
-    //   }
-    // } catch (error) {
-    //   console.error('Failed to initialize notifications:', error);
-    // }
+    try {
+      const notificationsEnabled = await appointmentService.initializeNotifications();
+      if (!notificationsEnabled) {
+        console.log('⚠️ Notifications not enabled - reminders will not work');
+      } else {
+        console.log('✅ Notifications enabled - reminders will work');
+        
+        // Test notification (development only)
+        if (__DEV__) {
+          console.log('📱 Testing notification in 5 seconds...');
+          await appointmentService.scheduleTestNotification();
+        }
+      }
+    } catch (error) {
+      console.error('Failed to initialize notifications:', error);
+    }
   };
 
   useEffect(() => {

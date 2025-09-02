@@ -17,6 +17,9 @@ if (isDevelopment) {
   console.warn('⚠️ Modo de desarrollo: Supabase no configurado. Las funciones de autenticación estarán simuladas.');
 }
 
+// Debug flag for auth errors - set to true to see all auth errors including session missing
+const DEBUG_AUTH = false;
+
 export const supabase = isDevelopment 
   ? null 
   : createClient<Database>(
@@ -67,7 +70,10 @@ export const connectionService = {
 
 // Enhanced error handling helper with Mexican Spanish messages
 const handleSupabaseError = (error: any, context: string) => {
-  console.error(`Supabase Error [${context}]:`, error);
+  // Only log errors if DEBUG_AUTH is true OR if it's not an Auth session missing error
+  if (DEBUG_AUTH || error?.message !== 'Auth session missing!') {
+    console.error(`Supabase Error [${context}]:`, error);
+  }
   
   // Network errors
   if (error?.message?.includes('Network') || error?.code === 'NETWORK_ERROR') {
@@ -611,7 +617,10 @@ export const authService = {
       
       return { user, error: null };
     } catch (error) {
-      console.error('AuthService: Error en getCurrentUser', error);
+      // Only log if DEBUG_AUTH is true OR if it's not an Auth session missing error
+      if (DEBUG_AUTH || (error as any)?.message !== 'Auth session missing!') {
+        console.error('AuthService: Error en getCurrentUser:', error);
+      }
       return { user: null, error };
     }
   },

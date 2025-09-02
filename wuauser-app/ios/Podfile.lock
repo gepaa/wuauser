@@ -1,12 +1,16 @@
 PODS:
   - boost (1.84.0)
   - DoubleConversion (1.1.6)
+  - EXApplication (6.1.5):
+    - ExpoModulesCore
   - EXConstants (17.1.7):
     - ExpoModulesCore
   - EXImageLoader (5.1.0):
     - ExpoModulesCore
     - React-Core
-  - Expo (53.0.20):
+  - EXNotifications (0.31.4):
+    - ExpoModulesCore
+  - Expo (53.0.22):
     - DoubleConversion
     - ExpoModulesCore
     - glog
@@ -85,7 +89,7 @@ PODS:
     - ReactCommon/turbomodule/bridging
     - ReactCommon/turbomodule/core
     - Yoga
-  - ExpoSecureStore (14.2.3):
+  - ExpoSecureStore (14.2.4):
     - ExpoModulesCore
   - fast_float (6.1.4)
   - FBLazyVector (0.79.5)
@@ -1946,42 +1950,42 @@ PODS:
   - RNSVG (15.11.2):
     - React-Core
   - SocketRocket (0.7.1)
-  - Stripe (24.20.0):
-    - StripeApplePay (= 24.20.0)
-    - StripeCore (= 24.20.0)
-    - StripePayments (= 24.20.0)
-    - StripePaymentsUI (= 24.20.0)
-    - StripeUICore (= 24.20.0)
-  - stripe-react-native (0.51.0):
+  - Stripe (24.12.1):
+    - StripeApplePay (= 24.12.1)
+    - StripeCore (= 24.12.1)
+    - StripePayments (= 24.12.1)
+    - StripePaymentsUI (= 24.12.1)
+    - StripeUICore (= 24.12.1)
+  - stripe-react-native (0.45.0):
     - React-Core
-    - Stripe (~> 24.20.0)
-    - StripeApplePay (~> 24.20.0)
-    - StripeFinancialConnections (~> 24.20.0)
-    - StripePayments (~> 24.20.0)
-    - StripePaymentSheet (~> 24.20.0)
-    - StripePaymentsUI (~> 24.20.0)
-  - StripeApplePay (24.20.0):
-    - StripeCore (= 24.20.0)
-  - StripeCore (24.20.0)
-  - StripeFinancialConnections (24.20.0):
-    - StripeCore (= 24.20.0)
-    - StripeUICore (= 24.20.0)
-  - StripePayments (24.20.0):
-    - StripeCore (= 24.20.0)
-    - StripePayments/Stripe3DS2 (= 24.20.0)
-  - StripePayments/Stripe3DS2 (24.20.0):
-    - StripeCore (= 24.20.0)
-  - StripePaymentSheet (24.20.0):
-    - StripeApplePay (= 24.20.0)
-    - StripeCore (= 24.20.0)
-    - StripePayments (= 24.20.0)
-    - StripePaymentsUI (= 24.20.0)
-  - StripePaymentsUI (24.20.0):
-    - StripeCore (= 24.20.0)
-    - StripePayments (= 24.20.0)
-    - StripeUICore (= 24.20.0)
-  - StripeUICore (24.20.0):
-    - StripeCore (= 24.20.0)
+    - Stripe (~> 24.12.0)
+    - StripeApplePay (~> 24.12.0)
+    - StripeFinancialConnections (~> 24.12.0)
+    - StripePayments (~> 24.12.0)
+    - StripePaymentSheet (~> 24.12.0)
+    - StripePaymentsUI (~> 24.12.0)
+  - StripeApplePay (24.12.1):
+    - StripeCore (= 24.12.1)
+  - StripeCore (24.12.1)
+  - StripeFinancialConnections (24.12.1):
+    - StripeCore (= 24.12.1)
+    - StripeUICore (= 24.12.1)
+  - StripePayments (24.12.1):
+    - StripeCore (= 24.12.1)
+    - StripePayments/Stripe3DS2 (= 24.12.1)
+  - StripePayments/Stripe3DS2 (24.12.1):
+    - StripeCore (= 24.12.1)
+  - StripePaymentSheet (24.12.1):
+    - StripeApplePay (= 24.12.1)
+    - StripeCore (= 24.12.1)
+    - StripePayments (= 24.12.1)
+    - StripePaymentsUI (= 24.12.1)
+  - StripePaymentsUI (24.12.1):
+    - StripeCore (= 24.12.1)
+    - StripePayments (= 24.12.1)
+    - StripeUICore (= 24.12.1)
+  - StripeUICore (24.12.1):
+    - StripeCore (= 24.12.1)
   - Yoga (0.0.0)
   - ZXingObjC/Core (3.6.9)
   - ZXingObjC/OneD (3.6.9):
@@ -1992,8 +1996,10 @@ PODS:
 DEPENDENCIES:
   - boost (from `../node_modules/react-native/third-party-podspecs/boost.podspec`)
   - DoubleConversion (from `../node_modules/react-native/third-party-podspecs/DoubleConversion.podspec`)
+  - EXApplication (from `../node_modules/expo-application/ios`)
   - EXConstants (from `../node_modules/expo-constants/ios`)
   - EXImageLoader (from `../node_modules/expo-image-loader/ios`)
+  - EXNotifications (from `../node_modules/expo-notifications/ios`)
   - Expo (from `../node_modules/expo`)
   - ExpoAsset (from `../node_modules/expo-asset/ios`)
   - ExpoBlur (from `../node_modules/expo-blur/ios`)
@@ -2107,10 +2113,14 @@ EXTERNAL SOURCES:
     :podspec: "../node_modules/react-native/third-party-podspecs/boost.podspec"
   DoubleConversion:
     :podspec: "../node_modules/react-native/third-party-podspecs/DoubleConversion.podspec"
+  EXApplication:
+    :path: "../node_modules/expo-application/ios"
   EXConstants:
     :path: "../node_modules/expo-constants/ios"
   EXImageLoader:
     :path: "../node_modules/expo-image-loader/ios"
+  EXNotifications:
+    :path: "../node_modules/expo-notifications/ios"
   Expo:
     :path: "../node_modules/expo"
   ExpoAsset:
@@ -2300,9 +2310,11 @@ EXTERNAL SOURCES:
 SPEC CHECKSUMS:
   boost: 7e761d76ca2ce687f7cc98e698152abd03a18f90
   DoubleConversion: cb417026b2400c8f53ae97020b2be961b59470cb
+  EXApplication: 1e06972201838375ca1ec1ba34d586a98a5dc718
   EXConstants: 98bcf0f22b820f9b28f9fee55ff2daededadd2f8
   EXImageLoader: 4d3d3284141f1a45006cc4d0844061c182daf7ee
-  Expo: b527631da3b11e085809e877b845f9e6cdd68f9c
+  EXNotifications: be5e949edf1d60b70e77178b81aa505298fadd07
+  Expo: 0b8f6749a30425aea7ca0893372ee4743ec2270d
   ExpoAsset: ef06e880126c375f580d4923fdd1cdf4ee6ee7d6
   ExpoBlur: 3c8885b9bf9eef4309041ec87adec48b5f1986a9
   ExpoCamera: e1879906d41184e84b57d7643119f8509414e318
@@ -2316,7 +2328,7 @@ SPEC CHECKSUMS:
   ExpoLocation: a43df2ff15f2fae9504b23a77060e7cd16b3e326
   ExpoMediaLibrary: 0daf5e811e00daa47690f5da2989e71ff7de56e0
   ExpoModulesCore: f55e7872391bae03ee5547c83152c81750d89508
-  ExpoSecureStore: b367d9f62c9102d808afbeb1561636d4276e439d
+  ExpoSecureStore: 3f1b632d6d40bcc62b4983ef9199cd079592a50a
   fast_float: 06eeec4fe712a76acc9376682e4808b05ce978b6
   FBLazyVector: d2a9cd223302b6c9aa4aa34c1a775e9db609eb52
   fmt: a40bb5bd0294ea969aaaba240a927bd33d878cdd
@@ -2393,15 +2405,15 @@ SPEC CHECKSUMS:
   RNScreens: 62fdbbc4c984150b34c36f095c6ba2510ca9b6a5
   RNSVG: ab84f2de7dd4f2c86d01825b8a65e0ef712fc36b
   SocketRocket: d4aabe649be1e368d1318fdf28a022d714d65748
-  Stripe: 517f6e3e25f01641be2adab3aa3d1f45d4d443c6
-  stripe-react-native: aa50f8c751300e3b454e6b73b0bc5890cc32cf4f
-  StripeApplePay: 78f0c4a2c2af7f03b298d2f9bc7a1a0044490923
-  StripeCore: 4430d270394b09c97dec8b2436228e76fcb3f84c
-  StripeFinancialConnections: efaf9a43bca22b6784da57eca99301598783e60f
-  StripePayments: db1f0a2e914a276028b23f5e1467e1e88f6a0238
-  StripePaymentSheet: 9c1c6d7c6498c8ba593e3b8690bf6fc79672ee91
-  StripePaymentsUI: d6b0285fdda8ac9cf8e83de423ca4efbf8b29439
-  StripeUICore: 31c439e9a03cd178415fa9dd65cc1ce71db260ec
+  Stripe: 6a37e0d27872cb2c878d404676bd90cc3d7bf04b
+  stripe-react-native: 8e7821c72a86ce120170ed3890469f754b88a9cb
+  StripeApplePay: 3caeb241c08f79b5f11024a96409317b50347e71
+  StripeCore: fba9a10801900090b54a4384b85384e55643cbf6
+  StripeFinancialConnections: 9eab846f1c0dc98ab14e3611e1a8436c026bea5c
+  StripePayments: 83c1b5d7b782d23030b606427726a793fee5d169
+  StripePaymentSheet: b0c28bbb9b0704cdacd54facb84654d841202cec
+  StripePaymentsUI: 9b84384e81adc9c24f599f1a8991fb52c767fc62
+  StripeUICore: 186f245526e86ab02578abcc6bb6d27cc34084c6
   Yoga: adb397651e1c00672c12e9495babca70777e411e
   ZXingObjC: 8898711ab495761b2dbbdec76d90164a6d7e14c5
 

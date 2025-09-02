@@ -1,15 +1,19 @@
 import React, { useState, useEffect } from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
-import { Platform } from 'react-native';
+import { Platform, View } from 'react-native';
 import { Colors } from '../constants/colors';
 import { HomeScreen } from '../screens/HomeScreen';
 import { MyPetsScreen } from '../screens/MyPetsScreen';
 import { MapScreen } from '../screens/MapScreen';
 import { ProfileScreen } from '../screens/ProfileScreen';
 import { VetDashboardScreen } from '../screens/VetDashboardScreen';
+import { VetProfessionalDashboard } from '../screens/VetProfessionalDashboard';
 import { VetAppointmentsScreen } from '../screens/VetAppointmentsScreen';
+import { VetAppointmentsProfessional } from '../screens/VetAppointmentsProfessional';
 import { ChatListScreen } from '../screens/ChatListScreen';
+import { VetChatsProfessional } from '../screens/VetChatsProfessional';
+import VetTabNavigator from './VetTabNavigator';
 import roleService, { UserRole } from '../services/roleService';
 import { chatService } from '../services/chatService';
 
@@ -48,86 +52,126 @@ export const TabNavigator: React.FC = () => {
     }
   };
 
-  // Dynamic tab configuration based on role
-  const getTabConfig = () => {
-    if (currentRole === 'veterinario') {
-      return {
-        tabs: [
-          { name: 'Dashboard', component: VetDashboardScreen, label: 'Panel', icon: 'medical' },
-          { name: 'Citas', component: VetAppointmentsScreen, label: 'Citas', icon: 'calendar' },
-          { name: 'ChatList', component: ChatListScreen, label: 'Mensajes', icon: 'chatbubbles' },
-          { name: 'Mapa', component: MapScreen, label: 'Mapa', icon: 'map' },
-          { name: 'Perfil', component: ProfileScreen, label: 'Perfil', icon: 'person' }
-        ]
-      };
-    } else {
-      return {
-        tabs: [
-          { name: 'Inicio', component: HomeScreen, label: 'Inicio', icon: 'home' },
-          { name: 'MisMascotas', component: MyPetsScreen, label: 'Mis Mascotas', icon: 'paw' },
-          { name: 'ChatList', component: ChatListScreen, label: 'Mensajes', icon: 'chatbubbles' },
-          { name: 'Mapa', component: MapScreen, label: 'Mapa', icon: 'map' },
-          { name: 'Perfil', component: ProfileScreen, label: 'Perfil', icon: 'person' }
-        ]
-      };
-    }
-  };
+  // Return different navigators based on role
+  if (currentRole === 'veterinario') {
+    return <VetTabNavigator />;
+  }
 
-  const tabConfig = getTabConfig();
-
+  // Owner navigation (existing)
   return (
     <Tab.Navigator
       screenOptions={({ route }) => ({
         tabBarIcon: ({ focused, color, size }) => {
-          const tab = tabConfig.tabs.find(t => t.name === route.name);
-          const iconName = tab ? (focused ? tab.icon : `${tab.icon}-outline`) : 'help-outline';
-          return <Ionicons name={iconName as any} size={size} color={color} />;
+          let iconName = 'help-outline';
+          
+          switch (route.name) {
+            case 'Inicio':
+              iconName = focused ? 'home' : 'home-outline';
+              break;
+            case 'MisMascotas':
+              iconName = focused ? 'paw' : 'paw-outline';
+              break;
+            case 'ChatList':
+              iconName = focused ? 'chatbubbles' : 'chatbubbles-outline';
+              break;
+            case 'Mapa':
+              iconName = focused ? 'map' : 'map-outline';
+              break;
+            case 'Perfil':
+              iconName = focused ? 'person' : 'person-outline';
+              break;
+          }
+          
+          return (
+            <View style={{
+              alignItems: 'center',
+              justifyContent: 'center',
+              width: 32,
+              height: 32,
+              borderRadius: 16,
+              backgroundColor: focused ? Colors.primary + '15' : 'transparent',
+            }}>
+              <Ionicons 
+                name={iconName as any} 
+                size={focused ? size + 2 : size} 
+                color={color} 
+              />
+            </View>
+          );
         },
         tabBarActiveTintColor: Colors.primary,
-        tabBarInactiveTintColor: '#8E8E93',
+        tabBarInactiveTintColor: Colors.gray[500],
         tabBarStyle: {
-          backgroundColor: Colors.white,
-          borderTopWidth: 1,
-          borderTopColor: Colors.border,
-          paddingBottom: Platform.OS === 'ios' ? 20 : 10,
-          paddingTop: 10,
-          height: Platform.OS === 'ios' ? 85 : 70,
+          backgroundColor: '#FFFFFF',
+          borderTopWidth: 0,
+          paddingBottom: Platform.OS === 'ios' ? 30 : 15,
+          paddingTop: 15,
+          height: Platform.OS === 'ios' ? 95 : 80,
           shadowColor: '#000',
           shadowOffset: {
             width: 0,
-            height: -2,
+            height: -4,
           },
-          shadowOpacity: 0.1,
-          shadowRadius: 8,
-          elevation: 8,
+          shadowOpacity: 0.15,
+          shadowRadius: 12,
+          elevation: 20,
+          borderTopLeftRadius: 20,
+          borderTopRightRadius: 20,
         },
         tabBarItemStyle: {
           flex: 1,
-          paddingHorizontal: 0,
+          paddingHorizontal: 4,
+          marginHorizontal: 2,
         },
         tabBarLabelStyle: {
-          fontSize: 11,
-          fontWeight: '600',
+          fontSize: 12,
+          fontWeight: '700',
+          marginTop: 4,
         },
         tabBarIconStyle: {
-          marginTop: 2,
+          marginTop: 0,
         },
         animation: 'shift',
         headerShown: false,
         tabBarHideOnKeyboard: true,
       })}
     >
-      {tabConfig.tabs.map((tab) => (
-        <Tab.Screen 
-          key={tab.name}
-          name={tab.name} 
-          component={tab.component}
-          options={{
-            tabBarLabel: tab.label,
-            tabBarBadge: tab.name === 'ChatList' && unreadCount > 0 ? unreadCount : undefined
-          }}
-        />
-      ))}
+      <Tab.Screen 
+        name="Inicio" 
+        component={HomeScreen}
+        options={{
+          tabBarLabel: 'Inicio',
+        }}
+      />
+      <Tab.Screen 
+        name="MisMascotas" 
+        component={MyPetsScreen}
+        options={{
+          tabBarLabel: 'Mis Mascotas',
+        }}
+      />
+      <Tab.Screen 
+        name="ChatList" 
+        component={ChatListScreen}
+        options={{
+          tabBarLabel: 'Mensajes',
+          tabBarBadge: unreadCount > 0 ? unreadCount : undefined
+        }}
+      />
+      <Tab.Screen 
+        name="Mapa" 
+        component={MapScreen}
+        options={{
+          tabBarLabel: 'Mapa',
+        }}
+      />
+      <Tab.Screen 
+        name="Perfil" 
+        component={ProfileScreen}
+        options={{
+          tabBarLabel: 'Perfil',
+        }}
+      />
     </Tab.Navigator>
   );
 };

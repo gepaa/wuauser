@@ -1,6 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { supabase } from './supabase';
-// import notificationService from './notificationService';
+import notificationService from './notificationService';
 
 export interface Pet {
   id: string;
@@ -338,13 +338,13 @@ export const appointmentService = {
         await AsyncStorage.setItem(STORAGE_KEYS.APPOINTMENTS, JSON.stringify(appointments));
         
         // Schedule notification reminders
-        // try {
-        //   const notificationIds = await notificationService.scheduleAppointmentReminders(newAppointment);
-        //   console.log('📲 Notifications scheduled:', notificationIds);
-        // } catch (notificationError) {
-        //   console.warn('Failed to schedule notifications:', notificationError);
-        //   // Don't fail the appointment creation if notifications fail
-        // }
+        try {
+          const notificationIds = await notificationService.scheduleAppointmentReminders(newAppointment);
+          console.log('📲 Notifications scheduled:', notificationIds);
+        } catch (notificationError) {
+          console.warn('Failed to schedule notifications:', notificationError);
+          // Don't fail the appointment creation if notifications fail
+        }
         
         console.log('📅 Mock createAppointment:', newAppointment);
         return { data: newAppointment };
@@ -361,15 +361,15 @@ export const appointmentService = {
       }
 
       // Schedule notification reminders for production too
-      // if (data) {
-      //   try {
-      //     const notificationIds = await notificationService.scheduleAppointmentReminders(data);
-      //     console.log('📲 Notifications scheduled:', notificationIds);
-      //   } catch (notificationError) {
-      //     console.warn('Failed to schedule notifications:', notificationError);
-      //     // Don't fail the appointment creation if notifications fail
-      //   }
-      // }
+      if (data) {
+        try {
+          const notificationIds = await notificationService.scheduleAppointmentReminders(data);
+          console.log('📲 Notifications scheduled:', notificationIds);
+        } catch (notificationError) {
+          console.warn('Failed to schedule notifications:', notificationError);
+          // Don't fail the appointment creation if notifications fail
+        }
+      }
 
       return { data };
     } catch (error: any) {
@@ -582,14 +582,14 @@ export const appointmentService = {
   },
 
   async cancelAppointment(appointmentId: string, reason?: string): Promise<{ data?: Appointment; error?: string }> {
-    // try {
-    //   // Cancel notifications first
-    //   await notificationService.cancelAppointmentReminders(appointmentId);
-    //   console.log('📲 Notifications cancelled for appointment:', appointmentId);
-    // } catch (notificationError) {
-    //   console.warn('Failed to cancel notifications:', notificationError);
-    //   // Continue with cancellation even if notification cancellation fails
-    // }
+    try {
+      // Cancel notifications first
+      await notificationService.cancelAppointmentReminders(appointmentId);
+      console.log('📲 Notifications cancelled for appointment:', appointmentId);
+    } catch (notificationError) {
+      console.warn('Failed to cancel notifications:', notificationError);
+      // Continue with cancellation even if notification cancellation fails
+    }
     
     return this.updateAppointmentStatus(appointmentId, 'cancelled', reason);
   },
@@ -635,35 +635,76 @@ export const appointmentService = {
   },
 
   // Notification Management
-  // async initializeNotifications(): Promise<boolean> {
-  //   try {
-  //     return await notificationService.requestPermissions();
-  //   } catch (error) {
-  //     console.error('Error initializing notifications:', error);
-  //     return false;
-  //   }
-  // },
+  async initializeNotifications(): Promise<boolean> {
+    try {
+      return await notificationService.requestPermissions();
+    } catch (error) {
+      console.error('Error initializing notifications:', error);
+      return false;
+    }
+  },
 
-  // async scheduleTestNotification(): Promise<string | null> {
-  //   try {
-  //     return await notificationService.scheduleTestNotification();
-  //   } catch (error) {
-  //     console.error('Error scheduling test notification:', error);
-  //     return null;
-  //   }
-  // },
+  async scheduleTestNotification(): Promise<string | null> {
+    try {
+      return await notificationService.scheduleTestNotification();
+    } catch (error) {
+      console.error('Error scheduling test notification:', error);
+      return null;
+    }
+  },
 
-  // async areNotificationsEnabled(): Promise<boolean> {
-  //   return await notificationService.areNotificationsEnabled();
-  // },
+  async areNotificationsEnabled(): Promise<boolean> {
+    return await notificationService.areNotificationsEnabled();
+  },
 
-  // async getAllScheduledNotifications() {
-  //   return await notificationService.getAllScheduledNotifications();
-  // },
+  async getAllScheduledNotifications() {
+    return await notificationService.getAllScheduledNotifications();
+  },
 
-  // async cancelAllNotifications(): Promise<void> {
-  //   return await notificationService.cancelAllNotifications();
-  // },
+  async cancelAllNotifications(): Promise<void> {
+    return await notificationService.cancelAllNotifications();
+  },
+
+  // Auto-update appointment statuses based on time
+  async updateExpiredAppointments(): Promise<void> {
+    try {
+      const now = new Date();
+      
+      if (!supabase) {
+        // Mock implementation - mark past confirmed appointments as completed
+        const savedAppointments = await AsyncStorage.getItem(STORAGE_KEYS.APPOINTMENTS);
+        if (savedAppointments) {
+          const appointments: Appointment[] = JSON.parse(savedAppointments);
+          let hasUpdates = false;
+          
+          const updatedAppointments = appointments.map(apt => {
+            const aptDateTime = new Date(`${apt.date}T${apt.time}:00`);
+            const hoursSinceAppointment = (now.getTime() - aptDateTime.getTime()) / (1000 * 60 * 60);
+            
+            // Auto-complete confirmed appointments that passed 2+ hours ago
+            if (apt.status === 'confirmed' && hoursSinceAppointment > 2) {
+              hasUpdates = true;
+              return {
+                ...apt,
+                status: 'completed' as const,
+                notes: apt.notes ? `${apt.notes}\n[Auto-completada]` : '[Auto-completada]',
+                updatedAt: new Date().toISOString()
+              };
+            }
+            
+            return apt;
+          });
+          
+          if (hasUpdates) {
+            await AsyncStorage.setItem(STORAGE_KEYS.APPOINTMENTS, JSON.stringify(updatedAppointments));
+            console.log('🔄 Auto-updated expired appointments');
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Error updating expired appointments:', error);
+    }
+  },
 
   // Clear completed appointments and their notifications (cleanup)
   async cleanupOldAppointments(): Promise<void> {
@@ -687,9 +728,9 @@ export const appointmentService = {
             return aptDate <= oneDayAgo && apt.status === 'completed';
           });
 
-          // for (const apt of oldCompleted) {
-          //   await notificationService.cancelAppointmentReminders(apt.id);
-          // }
+          for (const apt of oldCompleted) {
+            await notificationService.cancelAppointmentReminders(apt.id);
+          }
 
           await AsyncStorage.setItem(STORAGE_KEYS.APPOINTMENTS, JSON.stringify(recentAppointments));
           console.log('🧹 Cleaned up old appointments and notifications');
@@ -698,6 +739,58 @@ export const appointmentService = {
     } catch (error) {
       console.error('Error cleaning up old appointments:', error);
     }
+  },
+
+  // Get appointment statistics
+  getAppointmentStats(appointments: Appointment[]): {
+    total: number;
+    pending: number;
+    confirmed: number;
+    completed: number;
+    cancelled: number;
+    todayCount: number;
+    thisWeekCount: number;
+  } {
+    const now = new Date();
+    const today = now.toISOString().split('T')[0];
+    
+    // Calculate start of week (Sunday)
+    const startOfWeek = new Date(now);
+    startOfWeek.setDate(now.getDate() - now.getDay());
+    const weekStart = startOfWeek.toISOString().split('T')[0];
+    
+    const stats = {
+      total: appointments.length,
+      pending: appointments.filter(apt => apt.status === 'pending').length,
+      confirmed: appointments.filter(apt => apt.status === 'confirmed').length,
+      completed: appointments.filter(apt => apt.status === 'completed').length,
+      cancelled: appointments.filter(apt => apt.status === 'cancelled').length,
+      todayCount: appointments.filter(apt => apt.date === today).length,
+      thisWeekCount: appointments.filter(apt => apt.date >= weekStart).length,
+    };
+    
+    return stats;
+  },
+
+  // Sort appointments by priority (status + date/time)
+  sortAppointmentsByPriority(appointments: Appointment[]): Appointment[] {
+    const statusPriority = {
+      'pending': 1,
+      'confirmed': 2,
+      'completed': 3,
+      'cancelled': 4,
+    };
+    
+    return appointments.sort((a, b) => {
+      // First sort by status priority
+      const statusDiff = (statusPriority[a.status] || 5) - (statusPriority[b.status] || 5);
+      if (statusDiff !== 0) return statusDiff;
+      
+      // Then sort by date and time
+      const dateA = new Date(`${a.date}T${a.time}`);
+      const dateB = new Date(`${b.date}T${b.time}`);
+      return dateA.getTime() - dateB.getTime();
+    });
   }
 };
 

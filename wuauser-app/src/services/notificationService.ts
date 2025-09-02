@@ -1,8 +1,3 @@
-// NOTIFICATION SERVICE - COMMENTED OUT DUE TO MISSING expo-notifications DEPENDENCY
-// This file is temporarily commented out to allow the app to compile
-// To enable notifications, install expo-notifications package and uncomment this code
-
-/*
 import * as Notifications from 'expo-notifications';
 import { Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -323,16 +318,6 @@ export const notificationService = {
       console.error('Error clearing badge:', error);
     }
   }
-};
-
-export default notificationService;
-*/
-
-// Temporary placeholder to prevent import errors
-export const notificationService = {
-  scheduleTestNotification: async () => Promise.resolve('disabled'),
-  scheduleAppointmentReminders: async () => Promise.resolve([]),
-  cancelAppointmentReminders: async () => Promise.resolve(),
 };
 
 export default notificationService;

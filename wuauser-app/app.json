@@ -14,21 +14,44 @@
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.anonymous.wuauser-app"
+      "bundleIdentifier": "com.anonymous.wuauser-app",
+      "infoPlist": {
+        "UIBackgroundModes": [
+          "background-processing",
+          "background-fetch"
+        ]
+      }
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "edgeToEdgeEnabled": true
+      "edgeToEdgeEnabled": true,
+      "permissions": [
+        "RECEIVE_BOOT_COMPLETED",
+        "SCHEDULE_EXACT_ALARM",
+        "USE_EXACT_ALARM",
+        "WAKE_LOCK",
+        "VIBRATE"
+      ]
     },
     "web": {
       "favicon": "./assets/favicon.png"
     },
     "scheme": "wuauser",
     "plugins": [
-      "expo-font"
+      "expo-font",
+      "expo-secure-store",
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/notification-icon.png",
+          "color": "#007AFF",
+          "sounds": ["./assets/sounds/notification.wav"],
+          "mode": "production"
+        }
+      ]
     ]
   }
 }
