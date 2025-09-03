@@ -24,6 +24,15 @@ import { MedicalRecordScreen } from '../screens/MedicalRecordScreen';
 import { AddMedicalRecordScreen } from '../screens/AddMedicalRecordScreen';
 import { ChatListScreen } from '../screens/ChatListScreen';
 import { ChatScreen } from '../screens/ChatScreen';
+import PacienteDetailScreen from '../screens/PacienteDetailScreen';
+import ConfiguracionesScreen from '../screens/ConfiguracionesScreen';
+import EstadisticasScreen from '../screens/EstadisticasScreen';
+import EditClinicaScreen from '../screens/EditClinicaScreen';
+import EditServiciosScreen from '../screens/EditServiciosScreen';
+import EditHorariosScreen from '../screens/EditHorariosScreen';
+import PerfilPublicoScreen from '../screens/PerfilPublicoScreen';
+import { VetSearchScreen } from '../screens/VetSearchScreen';
+import { VetProfileDetailScreen } from '../screens/VetProfileDetailScreen';
 import { TabNavigator } from './TabNavigator';
 
 const Stack = createStackNavigator();
@@ -81,6 +90,33 @@ const AppContent: React.FC = () => {
       <Stack.Screen name="AddMedicalRecord" component={AddMedicalRecordScreen} />
       <Stack.Screen name="ChatList" component={ChatListScreen} />
       <Stack.Screen name="Chat" component={ChatScreen} />
+      <Stack.Screen 
+        name="PacienteDetail" 
+        component={PacienteDetailScreen}
+        options={{
+          headerShown: true,
+          headerBackTitleVisible: false,
+          headerTintColor: '#2ECC71',
+          headerStyle: {
+            backgroundColor: '#FFFFFF',
+            borderBottomWidth: 1,
+            borderBottomColor: '#ECF0F1',
+          },
+          headerTitleStyle: {
+            fontSize: 18,
+            fontWeight: '600',
+            color: '#2C3E50',
+          },
+        }}
+      />
+      <Stack.Screen name="Configuraciones" component={ConfiguracionesScreen} />
+      <Stack.Screen name="Estadisticas" component={EstadisticasScreen} />
+      <Stack.Screen name="EditClinica" component={EditClinicaScreen} />
+      <Stack.Screen name="EditServicios" component={EditServiciosScreen} />
+      <Stack.Screen name="EditHorarios" component={EditHorariosScreen} />
+      <Stack.Screen name="PerfilPublico" component={PerfilPublicoScreen} />
+      <Stack.Screen name="VetSearch" component={VetSearchScreen} />
+      <Stack.Screen name="VetProfileDetail" component={VetProfileDetailScreen} />
     </Stack.Navigator>
   );
 };

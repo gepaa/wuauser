@@ -16,6 +16,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import appointmentService, { Pet, Service, TimeSlot, Appointment } from '../services/appointmentService';
+import { searchService } from '../services/searchService';
+import { bookingService } from '../services/bookingService';
 import { Colors } from '../constants/colors';
 
 interface BookAppointmentProps {
@@ -115,12 +117,25 @@ export const BookAppointmentScreen: React.FC<BookAppointmentProps> = ({ navigati
   const loadVetServices = async () => {
     setIsLoading(true);
     try {
-      const { data, error } = await appointmentService.getVetServices(vetId);
-      if (error) {
+      // Use searchService to get veterinarian services from mock data
+      const { data: servicesData, error: servicesError } = await searchService.getServiciosVeterinario(vetId);
+      
+      if (servicesError) {
         Alert.alert('Error', 'No se pudieron cargar los servicios');
         return;
       }
-      setServices(data || []);
+      
+      // Convert mock services to our Service interface
+      const convertedServices: Service[] = (servicesData || []).map(mockService => ({
+        id: `${vetId}_${mockService.nombre.toLowerCase().replace(/\s+/g, '_')}`,
+        name: mockService.nombre,
+        description: mockService.descripcion,
+        price: mockService.precio,
+        duration: mockService.duracionMinutos || 30,
+        category: mockService.categoria
+      }));
+      
+      setServices(convertedServices);
     } catch (error) {
       console.error('Error loading services:', error);
       Alert.alert('Error', 'No se pudieron cargar los servicios');
@@ -134,16 +149,24 @@ export const BookAppointmentScreen: React.FC<BookAppointmentProps> = ({ navigati
     
     setIsLoading(true);
     try {
-      const { data, error } = await appointmentService.getAvailableSlots(
+      // Use searchService to get available time slots from mock data
+      const { data: horariosData, error: horariosError } = await searchService.getHorariosDisponibles(
         vetId,
-        bookingData.selectedDate,
-        bookingData.selectedService.duration
+        bookingData.selectedDate
       );
-      if (error) {
+      
+      if (horariosError) {
         Alert.alert('Error', 'No se pudieron cargar los horarios disponibles');
         return;
       }
-      setAvailableSlots(data || []);
+      
+      // Convert strings to TimeSlot format
+      const timeSlots: TimeSlot[] = (horariosData || []).map(hora => ({
+        time: hora,
+        available: true // searchService already filters available slots
+      }));
+      
+      setAvailableSlots(timeSlots);
     } catch (error) {
       console.error('Error loading slots:', error);
       Alert.alert('Error', 'No se pudieron cargar los horarios disponibles');
@@ -192,30 +215,46 @@ export const BookAppointmentScreen: React.FC<BookAppointmentProps> = ({ navigati
 
     setIsLoading(true);
     try {
-      const appointmentData: Omit<Appointment, 'id' | 'createdAt' | 'updatedAt'> = {
-        vetId: bookingData.vetId,
-        vetName: bookingData.vetName,
-        petId: bookingData.selectedPet.id,
-        petName: bookingData.selectedPet.name,
-        ownerEmail: bookingData.selectedPet.ownerEmail,
-        ownerName: 'Usuario Test', // Replace with actual user name
-        serviceId: bookingData.selectedService.id,
-        serviceName: bookingData.selectedService.name,
-        servicePrice: bookingData.selectedService.price,
-        date: bookingData.selectedDate,
-        time: bookingData.selectedTime,
-        duration: bookingData.selectedService.duration,
-        reason: bookingData.reason,
-        isUrgent: bookingData.isUrgent,
-        isFirstTime: bookingData.isFirstTime,
-        status: 'pending'
+      // Use bookingService for the complete booking flow
+      const reservaData = {
+        veterinarioId: bookingData.vetId,
+        veterinarioNombre: bookingData.vetName,
+        mascotaId: bookingData.selectedPet.id,
+        mascotaNombre: bookingData.selectedPet.name,
+        servicioId: bookingData.selectedService.id,
+        servicioNombre: bookingData.selectedService.name,
+        fecha: bookingData.selectedDate,
+        hora: bookingData.selectedTime,
+        motivo: bookingData.reason,
+        esUrgente: bookingData.isUrgent,
+        esPrimeraVez: bookingData.isFirstTime,
+        precioTotal: bookingData.selectedService.price
       };
 
-      const { data, error } = await appointmentService.createAppointment(appointmentData);
+      const { data: reserva, error: reservaError } = await bookingService.crearReserva(reservaData);
       
-      if (error) {
-        Alert.alert('Error', 'No se pudo crear la cita. Intenta nuevamente.');
+      if (reservaError || !reserva) {
+        Alert.alert('Error', 'No se pudo crear la reserva. Intenta nuevamente.');
         return;
+      }
+
+      // Process mock payment
+      const { data: pago, error: pagoError } = await bookingService.procesarPago(
+        reserva.id,
+        bookingData.selectedService.price,
+        'tarjeta'
+      );
+
+      if (pagoError || !pago) {
+        Alert.alert('Error', 'Error en el procesamiento del pago. Intenta nuevamente.');
+        return;
+      }
+
+      // Confirm the booking
+      const { error: confirmarError } = await bookingService.confirmarReserva(reserva.id);
+      
+      if (confirmarError) {
+        Alert.alert('Advertencia', 'La reserva fue creada pero no se pudo confirmar automáticamente.');
       }
 
       const notificationsEnabled = await appointmentService.areNotificationsEnabled();
@@ -224,12 +263,12 @@ export const BookAppointmentScreen: React.FC<BookAppointmentProps> = ({ navigati
         : '\n\n⚠️ Activa las notificaciones para recibir recordatorios de tu cita.';
 
       Alert.alert(
-        '¡Cita Agendada!',
-        `Tu cita ha sido registrada exitosamente. Recibirás una confirmación pronto.${reminderMessage}`,
+        '¡Cita Agendada Exitosamente!',
+        `Tu cita ha sido confirmada y pagada.\n\nPrecio total: $${bookingData.selectedService.price}\nEstado: Confirmada${reminderMessage}`,
         [
           {
             text: 'Ver mis citas',
-            onPress: () => navigation.navigate('MyAppointments')
+            onPress: () => navigation.navigate('HomeScreen')
           },
           {
             text: 'Volver al inicio',
@@ -239,7 +278,7 @@ export const BookAppointmentScreen: React.FC<BookAppointmentProps> = ({ navigati
       );
     } catch (error) {
       console.error('Error creating appointment:', error);
-      Alert.alert('Error', 'No se pudo crear la cita. Intenta nuevamente.');
+      Alert.alert('Error', 'No se pudo completar la reserva. Intenta nuevamente.');
     } finally {
       setIsLoading(false);
     }
