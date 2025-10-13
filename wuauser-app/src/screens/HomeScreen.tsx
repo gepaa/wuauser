@@ -9,13 +9,33 @@ import {
   Alert,
   RefreshControl,
   Dimensions,
-  ActivityIndicator
+  ActivityIndicator,
+  StatusBar,
+  SafeAreaView,
 } from 'react-native';
+import Animated, {
+  FadeInUp,
+  FadeInDown,
+  SlideInRight,
+  useSharedValue,
+  useAnimatedScrollHandler,
+  useAnimatedStyle,
+  interpolate,
+  Extrapolate,
+} from 'react-native-reanimated';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import * as SecureStore from 'expo-secure-store';
+import { BlurView } from 'expo-blur';
+// import { ownerTheme } from '../constants/ownerTheme';
+// import { 
+//   PremiumCard, 
+//   QuickActionButton, 
+//   PetStatusCard, 
+//   AppointmentCard, 
+//   TipCard 
+// } from '../components/owner';
 import { Colors } from '../constants/colors';
-import { authService, dbService, supabase } from '../services/supabase';
+import { authService, dbService } from '../services/supabase';
 import { useUserProfile } from '../hooks/useUserProfile';
 import roleService from '../services/roleService';
 
@@ -41,65 +61,106 @@ interface Pet {
 
 const petTips = [
   {
-    id: 1,
+    id: '1',
     title: "Hidratación Diaria",
-    description: "Tu mascota necesita agua fresca disponible 24/7. Cambia el agua todos los días y asegúrate de que el recipiente esté siempre limpio.",
-    icon: "water-outline",
-    color: "#4ECDC4"
+    content: "Tu mascota necesita agua fresca disponible 24/7. Cambia el agua todos los días y asegúrate de que el recipiente esté siempre limpio.",
+    category: "health" as const,
+    readTime: "2 min",
   },
   {
-    id: 2,
+    id: '2',
     title: "Calendario de Vacunas",
-    description: "Las vacunas previenen enfermedades graves. Mantén un calendario actualizado y consulta con tu veterinario sobre refuerzos anuales.",
-    icon: "medical-outline",
-    color: "#E85D4E"
+    content: "Las vacunas previenen enfermedades graves. Mantén un calendario actualizado y consulta con tu veterinario sobre refuerzos anuales.",
+    category: "health" as const,
+    readTime: "3 min",
   },
   {
-    id: 3,
+    id: '3',
     title: "Ejercicio Según la Edad",
-    description: "Los cachorros necesitan juegos cortos, los adultos 30-60 min diarios, y los seniors ejercicio suave pero constante.",
-    icon: "walk-outline",
-    color: "#F4B740"
+    content: "Los cachorros necesitan juegos cortos, los adultos 30-60 min diarios, y los seniors ejercicio suave pero constante.",
+    category: "training" as const,
+    readTime: "4 min",
   },
   {
-    id: 4,
-    title: "Higiene Dental",
-    description: "Cepilla los dientes de tu mascota 2-3 veces por semana. El 80% de perros mayores de 3 años tienen problemas dentales.",
-    icon: "medical-outline",
-    color: "#9C27B0"
-  },
-  {
-    id: 5,
+    id: '4',
     title: "Alimentación Balanceada",
-    description: "Usa alimento de calidad apropiado para la edad. Evita chocolate, uvas, cebolla y otros alimentos tóxicos para mascotas.",
-    icon: "nutrition-outline",
-    color: "#FF9800"
+    content: "Usa alimento de calidad apropiado para la edad. Evita chocolate, uvas, cebolla y otros alimentos tóxicos para mascotas.",
+    category: "nutrition" as const,
+    readTime: "3 min",
   },
-  {
-    id: 6,
-    title: "Revisiones Preventivas",
-    description: "Visita al veterinario cada 6-12 meses para chequeos. La detección temprana puede salvar vidas y ahorrar dinero.",
-    icon: "heart-outline",
-    color: "#E91E63"
-  }
 ];
+
+const mockUpcomingAppointments = [
+  {
+    id: '1',
+    date: 'Mañana',
+    time: '10:30 AM',
+    type: 'Consulta General',
+    status: 'confirmed' as const,
+    veterinarian: {
+      id: '1',
+      name: 'Dr. Ana García',
+      clinicName: 'Clínica Veterinaria Centro',
+    },
+    pet: {
+      id: '1',
+      name: 'Max',
+      type: 'dog' as const,
+    },
+  },
+];
+
+const AnimatedScrollView = Animated.createAnimatedComponent(ScrollView);
 
 export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
   const { profile, loading } = useUserProfile();
   const [pets, setPets] = useState<Pet[]>([]);
   const [refreshing, setRefreshing] = useState(false);
+  const scrollY = useSharedValue(0);
+
+  const scrollHandler = useAnimatedScrollHandler({
+    onScroll: (event) => {
+      scrollY.value = event.contentOffset.y;
+    },
+  });
+
+  const headerAnimatedStyle = useAnimatedStyle(() => {
+    const opacity = interpolate(
+      scrollY.value,
+      [0, 100],
+      [1, 0.9],
+      Extrapolate.CLAMP
+    );
+
+    const translateY = interpolate(
+      scrollY.value,
+      [0, 200],
+      [0, -50],
+      Extrapolate.CLAMP
+    );
+
+    return {
+      opacity,
+      transform: [{ translateY }],
+    };
+  });
 
   useEffect(() => {
     loadUserPets();
   }, []);
 
-
   const loadUserPets = async () => {
     try {
       if (process.env.NODE_ENV === 'development') {
-        // Mock pets data for development
+        // Mock pets data for development with sample pet
         const mockPets: Pet[] = [
-          // Empty array to show "Add First Pet" card
+          {
+            id: '1',
+            nombre: 'Max',
+            especie: 'Perro',
+            raza: 'Golden Retriever',
+            foto_url: undefined, // Will show placeholder
+          }
         ];
         setPets(mockPets);
       } else {
@@ -128,23 +189,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
   };
 
   const handleVeterinariansNearby = () => {
-    Alert.alert(
-      'Veterinarios Cerca',
-      '¿Buscar veterinarios en tu área?',
-      [
-        {
-          text: 'Cancelar',
-          style: 'cancel'
-        },
-        {
-          text: 'Buscar',
-          onPress: () => {
-            // TODO: Navigate to Veterinarians Map screen
-            Alert.alert('Próximamente', 'El mapa de veterinarios estará disponible pronto.');
-          }
-        }
-      ]
-    );
+    navigation.navigate('VeterinariansList');
   };
 
   const handleEmergency = () => {
@@ -183,8 +228,12 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
         ]
       );
     } else {
-      Alert.alert('Próximamente', 'La función de códigos QR estará disponible pronto.');
+      navigation.navigate('PetQR', { petId: pets[0].id });
     }
+  };
+
+  const handleScanQR = () => {
+    navigation.navigate('QRScanner');
   };
 
   const getGreeting = () => {
@@ -237,162 +286,180 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
 
   if (loading) {
     return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color={Colors.primary} />
-        <Text style={styles.loadingText}>Cargando perfil...</Text>
-      </View>
+      <SafeAreaView style={styles.loadingContainer}>
+        <StatusBar barStyle="dark-content" backgroundColor={Colors.background} />
+        <Animated.View entering={FadeInUp.springify()} style={styles.loadingContent}>
+          <ActivityIndicator size="large" color={Colors.primary} />
+          <Text style={styles.loadingText}>Cargando perfil...</Text>
+        </Animated.View>
+      </SafeAreaView>
     );
   }
 
-  return (
-    <ScrollView 
-      style={styles.container}
-      refreshControl={
-        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-      }
-      showsVerticalScrollIndicator={false}
-    >
-      {/* Header with greeting */}
-      <LinearGradient
-        colors={['#F4B740', '#FFF8E7']}
-        style={styles.header}
-      >
-        <View style={styles.greetingContainer}>
-          <Text style={styles.greetingText}>
-            {getGreeting()}, {getUserFirstName()} 👋
-          </Text>
-          <Text style={styles.subGreetingText}>
-            ¿Cómo está tu mascota hoy?
-          </Text>
-        </View>
-      </LinearGradient>
+  const mainPet = pets[0];
 
-      <View style={styles.content}>
-        {/* Add First Pet Card or Pet Summary */}
-        {pets.length === 0 ? (
-          <TouchableOpacity 
-            style={styles.addPetCard} 
-            onPress={handleAddFirstPet}
-            activeOpacity={0.8}
-          >
-            <LinearGradient
-              colors={['#4ECDC4', '#95E1D3']}
-              style={styles.addPetGradient}
-            >
-              <View style={styles.addPetContent}>
-                <View style={styles.addPetIcon}>
-                  <Ionicons name="add-circle" size={48} color="#FFF" />
-                </View>
-                <Text style={styles.addPetTitle}>Agregar Primera Mascota</Text>
-                <Text style={styles.addPetDescription}>
-                  Registra a tu compañero peludo y mantén su información siempre a mano
-                </Text>
-                <View style={styles.addPetButton}>
-                  <Text style={styles.addPetButtonText}>Comenzar</Text>
-                  <Ionicons name="arrow-forward" size={16} color="#4ECDC4" />
-                </View>
-              </View>
-            </LinearGradient>
-          </TouchableOpacity>
-        ) : (
-          <View style={styles.petsOverview}>
-            <Text style={styles.sectionTitle}>Mis Mascotas</Text>
-            <Text style={styles.petsSummary}>
-              Tienes {pets.length} mascota{pets.length !== 1 ? 's' : ''} registrada{pets.length !== 1 ? 's' : ''}
+  return (
+    <SafeAreaView style={styles.container}>
+      <StatusBar barStyle="dark-content" backgroundColor={Colors.background} />
+      
+      <AnimatedScrollView 
+        style={styles.scrollView}
+        onScroll={scrollHandler}
+        scrollEventThrottle={16}
+        refreshControl={
+          <RefreshControl 
+            refreshing={refreshing} 
+            onRefresh={onRefresh}
+            tintColor={Colors.primary}
+            colors={[Colors.primary]}
+          />
+        }
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.contentContainer}
+      >
+        {/* Header with greeting */}
+        <LinearGradient
+          colors={['#F4B740', '#FFF8E7']}
+          style={styles.header}
+        >
+          <View style={styles.greetingContainer}>
+            <Text style={styles.greetingText}>
+              {getGreeting()}, {getUserFirstName()} 👋
+            </Text>
+            <Text style={styles.subGreetingText}>
+              ¿Cómo está tu mascota hoy?
             </Text>
           </View>
-        )}
+        </LinearGradient>
 
-        {/* Quick Access Buttons */}
-        <View style={styles.quickAccessContainer}>
-          <Text style={styles.sectionTitle}>Accesos Rápidos</Text>
-          
-          <View style={styles.quickAccessGrid}>
+        {/* Main Content */}
+        <View style={styles.mainContent}>
+          {/* Add First Pet Card or Pet Summary */}
+          {pets.length === 0 ? (
             <TouchableOpacity 
-              style={[styles.quickAccessButton, { backgroundColor: '#E8F4FD' }]}
-              onPress={handleVeterinariansNearby}
+              style={styles.addPetCard} 
+              onPress={handleAddFirstPet}
               activeOpacity={0.8}
             >
-              <View style={[styles.quickAccessIcon, { backgroundColor: '#2196F3' }]}>
-                <Ionicons name="medical" size={24} color="#FFF" />
-              </View>
-              <Text style={styles.quickAccessTitle}>Veterinarios</Text>
-              <Text style={styles.quickAccessSubtitle}>Cerca de ti</Text>
+              <LinearGradient
+                colors={['#4ECDC4', '#95E1D3']}
+                style={styles.addPetGradient}
+              >
+                <View style={styles.addPetContent}>
+                  <View style={styles.addPetIcon}>
+                    <Ionicons name="add-circle" size={48} color="#FFF" />
+                  </View>
+                  <Text style={styles.addPetTitle}>Agregar Primera Mascota</Text>
+                  <Text style={styles.addPetDescription}>
+                    Registra a tu compañero peludo y mantén su información siempre a mano
+                  </Text>
+                  <View style={styles.addPetButton}>
+                    <Text style={styles.addPetButtonText}>Comenzar</Text>
+                    <Ionicons name="arrow-forward" size={16} color="#4ECDC4" />
+                  </View>
+                </View>
+              </LinearGradient>
             </TouchableOpacity>
+          ) : (
+            <View style={styles.petsOverview}>
+              <Text style={styles.sectionTitle}>Mis Mascotas</Text>
+              <Text style={styles.petsSummary}>
+                Tienes {pets.length} mascota{pets.length !== 1 ? 's' : ''} registrada{pets.length !== 1 ? 's' : ''}
+              </Text>
+            </View>
+          )}
 
-            <TouchableOpacity 
-              style={[styles.quickAccessButton, { backgroundColor: '#FFEBEE' }]}
-              onPress={handleEmergency}
-              activeOpacity={0.8}
-            >
-              <View style={[styles.quickAccessIcon, { backgroundColor: '#F44336' }]}>
-                <Ionicons name="warning" size={24} color="#FFF" />
-              </View>
-              <Text style={styles.quickAccessTitle}>Emergencias</Text>
-              <Text style={styles.quickAccessSubtitle}>24/7</Text>
-            </TouchableOpacity>
+          {/* Quick Access Buttons */}
+          <View style={styles.quickAccessContainer}>
+            <Text style={styles.sectionTitle}>Accesos Rápidos</Text>
+            
+            <View style={styles.quickAccessGrid}>
+              <TouchableOpacity 
+                style={[styles.quickAccessButton, { backgroundColor: '#E8F4FD' }]}
+                onPress={handleVeterinariansNearby}
+                activeOpacity={0.8}
+              >
+                <View style={[styles.quickAccessIcon, { backgroundColor: '#2196F3' }]}>
+                  <Ionicons name="medical" size={24} color="#FFF" />
+                </View>
+                <Text style={styles.quickAccessTitle}>Veterinarios</Text>
+                <Text style={styles.quickAccessSubtitle}>Cerca de ti</Text>
+              </TouchableOpacity>
 
-            <TouchableOpacity 
-              style={[styles.quickAccessButton, { backgroundColor: '#F3E5F5' }]}
-              onPress={handleMyQR}
-              activeOpacity={0.8}
-            >
-              <View style={[styles.quickAccessIcon, { backgroundColor: '#9C27B0' }]}>
-                <Ionicons name="qr-code" size={24} color="#FFF" />
-              </View>
-              <Text style={styles.quickAccessTitle}>Mi QR</Text>
-              <Text style={styles.quickAccessSubtitle}>Identificación</Text>
-            </TouchableOpacity>
+              <TouchableOpacity 
+                style={[styles.quickAccessButton, { backgroundColor: '#FFEBEE' }]}
+                onPress={handleEmergency}
+                activeOpacity={0.8}
+              >
+                <View style={[styles.quickAccessIcon, { backgroundColor: '#F44336' }]}>
+                  <Ionicons name="warning" size={24} color="#FFF" />
+                </View>
+                <Text style={styles.quickAccessTitle}>Emergencias</Text>
+                <Text style={styles.quickAccessSubtitle}>24/7</Text>
+              </TouchableOpacity>
 
-            <TouchableOpacity 
-              style={[styles.quickAccessButton, { backgroundColor: '#E8F5E8' }]}
-              onPress={() => navigation.navigate('QRScanner')}
-              activeOpacity={0.8}
-            >
-              <View style={[styles.quickAccessIcon, { backgroundColor: '#4CAF50' }]}>
-                <Ionicons name="scan" size={24} color="#FFF" />
-              </View>
-              <Text style={styles.quickAccessTitle}>Escanear</Text>
-              <Text style={styles.quickAccessSubtitle}>Encontré una</Text>
-            </TouchableOpacity>
+              <TouchableOpacity 
+                style={[styles.quickAccessButton, { backgroundColor: '#F3E5F5' }]}
+                onPress={handleMyQR}
+                activeOpacity={0.8}
+              >
+                <View style={[styles.quickAccessIcon, { backgroundColor: '#9C27B0' }]}>
+                  <Ionicons name="qr-code" size={24} color="#FFF" />
+                </View>
+                <Text style={styles.quickAccessTitle}>Mi QR</Text>
+                <Text style={styles.quickAccessSubtitle}>Identificación</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity 
+                style={[styles.quickAccessButton, { backgroundColor: '#E8F5E8' }]}
+                onPress={handleScanQR}
+                activeOpacity={0.8}
+              >
+                <View style={[styles.quickAccessIcon, { backgroundColor: '#4CAF50' }]}>
+                  <Ionicons name="scan" size={24} color="#FFF" />
+                </View>
+                <Text style={styles.quickAccessTitle}>Escanear</Text>
+                <Text style={styles.quickAccessSubtitle}>Encontré una</Text>
+              </TouchableOpacity>
+            </View>
           </View>
-        </View>
 
-        {/* Pet Care Tips */}
-        <View style={styles.tipsContainer}>
-          <Text style={styles.sectionTitle}>Tips de Cuidado</Text>
-          
-          {petTips.map((tip) => (
-            <View key={tip.id} style={styles.tipCard}>
-              <View style={[styles.tipIcon, { backgroundColor: tip.color }]}>
-                <Ionicons name={tip.icon as any} size={20} color="#FFF" />
+          {/* Pet Care Tips */}
+          <View style={styles.tipsContainer}>
+            <Text style={styles.sectionTitle}>Tips de Cuidado</Text>
+            
+            {petTips.map((tip) => (
+              <View key={tip.id} style={styles.tipCard}>
+                <View style={[styles.tipIcon, { backgroundColor: '#4ECDC4' }]}>
+                  <Ionicons name="medical-outline" size={20} color="#FFF" />
+                </View>
+                <View style={styles.tipContent}>
+                  <Text style={styles.tipTitle}>{tip.title}</Text>
+                  <Text style={styles.tipDescription}>{tip.content}</Text>
+                </View>
               </View>
-              <View style={styles.tipContent}>
-                <Text style={styles.tipTitle}>{tip.title}</Text>
-                <Text style={styles.tipDescription}>{tip.description}</Text>
-              </View>
-            </View>
-          ))}
-        </View>
-
-        {/* Role Switch */}
-        <TouchableOpacity style={styles.roleSwitchCard} onPress={handleRoleSwitch}>
-          <View style={styles.roleSwitchContent}>
-            <View style={styles.roleSwitchIcon}>
-              <Ionicons name="medical" size={24} color="#2196F3" />
-            </View>
-            <View style={styles.roleSwitchTextContainer}>
-              <Text style={styles.roleSwitchTitle}>¿Eres Veterinario?</Text>
-              <Text style={styles.roleSwitchSubtitle}>Cambia al modo profesional</Text>
-            </View>
-            <Ionicons name="arrow-forward" size={20} color="#2196F3" />
+            ))}
           </View>
-        </TouchableOpacity>
 
-        {/* Safety Space */}
-        <View style={styles.safetySpace} />
-      </View>
-    </ScrollView>
+          {/* Role Switch */}
+          <TouchableOpacity style={styles.roleSwitchCard} onPress={handleRoleSwitch}>
+            <View style={styles.roleSwitchContent}>
+              <View style={styles.roleSwitchIcon}>
+                <Ionicons name="medical" size={24} color="#2196F3" />
+              </View>
+              <View style={styles.roleSwitchTextContainer}>
+                <Text style={styles.roleSwitchTitle}>¿Eres Veterinario?</Text>
+                <Text style={styles.roleSwitchSubtitle}>Cambia al modo profesional</Text>
+              </View>
+              <Ionicons name="arrow-forward" size={20} color="#2196F3" />
+            </View>
+          </TouchableOpacity>
+
+          {/* Safety Space */}
+          <View style={styles.safetySpace} />
+        </View>
+      </AnimatedScrollView>
+    </SafeAreaView>
   );
 };
 
@@ -410,6 +477,12 @@ const styles = StyleSheet.create({
   loadingText: {
     fontSize: 16,
     color: Colors.text.secondary,
+  },
+  scrollView: {
+    flex: 1,
+  },
+  contentContainer: {
+    flexGrow: 1,
   },
   header: {
     paddingHorizontal: 16,
@@ -429,7 +502,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#4A4A4A',
   },
-  content: {
+  mainContent: {
     paddingHorizontal: 16,
     paddingTop: 24,
   },

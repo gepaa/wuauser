@@ -7,13 +7,29 @@ import {
   TouchableOpacity,
   Alert,
   RefreshControl,
-  Image
+  Image,
+  Dimensions,
+  Platform
 } from 'react-native';
+import Animated, {
+  useSharedValue,
+  useAnimatedStyle,
+  withSpring,
+  withTiming,
+  FadeInUp,
+  FadeInDown,
+  SlideInRight,
+  BounceIn,
+  interpolate,
+} from 'react-native-reanimated';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
+import { BlurView } from 'expo-blur';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Colors } from '../constants/colors';
 import { petService } from '../services/petService';
+
+const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 interface MyPetsScreenProps {
   navigation: any;
@@ -25,8 +41,16 @@ interface Pet {
   especie: string;
   raza?: string;
   edad?: number;
+  peso?: number;
   foto_url?: string;
   qr_code?: string;
+  microchip?: string;
+  color?: string;
+  sexo?: 'macho' | 'hembra';
+  esterilizado?: boolean;
+  fecha_nacimiento?: string;
+  vacunado?: boolean;
+  estado_salud?: 'excelente' | 'bueno' | 'regular' | 'requiere_atencion';
 }
 
 export const MyPetsScreen: React.FC<MyPetsScreenProps> = ({ navigation }) => {
@@ -208,47 +232,56 @@ export const MyPetsScreen: React.FC<MyPetsScreenProps> = ({ navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F8F9FA',
+    backgroundColor: Colors.background,
   },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#F8F9FA',
+    backgroundColor: Colors.background,
+    paddingHorizontal: 24,
   },
   loadingText: {
     fontSize: 16,
-    color: '#666',
+    color: Colors.text,
+    marginBottom: 16,
   },
+
+  // Header Styles
   header: {
-    paddingTop: 60,
-    padding: 20,
-    backgroundColor: '#FFF',
-    borderBottomWidth: 1,
-    borderBottomColor: '#F0F0F0',
+    paddingHorizontal: 24,
+    paddingVertical: 16,
+    backgroundColor: Colors.background,
   },
   headerTitle: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#333',
+    fontSize: 28,
+    fontWeight: '700',
+    color: Colors.text,
+    marginBottom: 4,
   },
   headerSubtitle: {
     fontSize: 14,
-    color: '#666',
-    marginTop: 4,
+    color: Colors.text.secondary,
+    marginBottom: 8,
   },
+
+  // Content Styles
   petsList: {
-    padding: 16,
+    flex: 1,
+    backgroundColor: Colors.background,
   },
+
+  // Pet Card Styles
   petCard: {
-    backgroundColor: '#FFF',
-    borderRadius: 12,
+    backgroundColor: Colors.surface,
+    marginHorizontal: 16,
     marginBottom: 12,
+    borderRadius: 12,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
+    shadowOpacity: 0.1,
     shadowRadius: 4,
-    elevation: 2,
+    elevation: 3,
   },
   petCardContent: {
     flexDirection: 'row',
@@ -259,85 +292,102 @@ const styles = StyleSheet.create({
     width: 50,
     height: 50,
     borderRadius: 25,
-    backgroundColor: '#FFF8E7',
+    backgroundColor: Colors.background,
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 12,
+    overflow: 'hidden',
   },
   petImage: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
+    width: '100%',
+    height: '100%',
+    resizeMode: 'cover',
   },
   petInfo: {
     flex: 1,
   },
   petName: {
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: '600',
-    color: '#333',
+    color: Colors.text,
     marginBottom: 4,
   },
   petBreed: {
     fontSize: 14,
-    color: '#666',
+    color: Colors.text.secondary,
   },
   petActions: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
+    gap: 8,
   },
   deleteButton: {
     padding: 8,
+    borderRadius: 8,
+    backgroundColor: '#FF6B6B15',
   },
+
+  // Empty State Styles
   emptyContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
     paddingVertical: 100,
+    paddingHorizontal: 24,
   },
   emptyIcon: {
-    marginBottom: 20,
+    marginBottom: 24,
+    padding: 32,
+    borderRadius: 50,
+    backgroundColor: '#DDD15',
   },
   emptyTitle: {
-    fontSize: 20,
+    fontSize: 24,
     fontWeight: '600',
-    color: '#333',
+    color: Colors.text,
     marginBottom: 8,
+    textAlign: 'center',
   },
   emptyText: {
-    fontSize: 14,
-    color: '#666',
+    fontSize: 16,
+    color: Colors.text.secondary,
     textAlign: 'center',
-    paddingHorizontal: 40,
-    marginBottom: 24,
+    lineHeight: 24,
+    marginBottom: 32,
   },
   addButton: {
-    backgroundColor: '#F4B740',
+    backgroundColor: Colors.primary,
     paddingHorizontal: 24,
     paddingVertical: 12,
-    borderRadius: 24,
+    borderRadius: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
   },
   addButtonText: {
-    color: '#FFF',
     fontSize: 16,
     fontWeight: '600',
+    color: '#FFF',
   },
+
+  // Floating Button Styles
   floatingButton: {
     position: 'absolute',
-    bottom: 20,
-    right: 20,
+    bottom: 32,
+    right: 24,
     width: 56,
     height: 56,
     borderRadius: 28,
-    backgroundColor: '#F4B740',
+    backgroundColor: Colors.primary,
     justifyContent: 'center',
     alignItems: 'center',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
+    shadowOpacity: 0.15,
     shadowRadius: 8,
-    elevation: 5,
+    elevation: 8,
   },
 });
 

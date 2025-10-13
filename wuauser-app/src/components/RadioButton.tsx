@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, StyleSheet } from 'react-native';
-import { colors } from '../constants/colors';
+import { Colors } from '../constants/colors';
 
 interface RadioButtonProps {
   selected: boolean;
@@ -11,7 +11,7 @@ interface RadioButtonProps {
 export const RadioButton: React.FC<RadioButtonProps> = ({ 
   selected, 
   size = 20, 
-  color = colors.primary 
+  color = Colors.primary 
 }) => {
   return (
     <View style={[

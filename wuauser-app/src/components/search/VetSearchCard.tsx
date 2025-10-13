@@ -6,13 +6,24 @@ import {
   TouchableOpacity,
   Image,
 } from 'react-native';
+import Animated, {
+  useSharedValue,
+  useAnimatedStyle,
+  withSpring,
+  FadeInUp,
+  BounceIn,
+  SlideInRight,
+} from 'react-native-reanimated';
 import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import { MockVeterinario } from '../../data/mockVeterinarios';
-import { vetTheme } from '../../constants/vetTheme';
+import { ownerTheme } from '../../constants/ownerTheme';
+import { PremiumCard } from '../owner/PremiumCard';
 
 interface VetSearchCardProps {
   veterinario: MockVeterinario;
   onPress: () => void;
+  index?: number;
 }
 
 const formatearNumero = (numero: number): string => {
@@ -22,7 +33,20 @@ const formatearNumero = (numero: number): string => {
   return numero.toLocaleString('es-MX');
 };
 
-export const VetSearchCard: React.FC<VetSearchCardProps> = ({ veterinario, onPress }) => {
+export const VetSearchCard: React.FC<VetSearchCardProps> = ({ veterinario, onPress, index = 0 }) => {
+  const scale = useSharedValue(1);
+  
+  const animatedStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: scale.value }],
+  }));
+
+  const handlePressIn = () => {
+    scale.value = withSpring(0.98, ownerTheme.animations.spring);
+  };
+
+  const handlePressOut = () => {
+    scale.value = withSpring(1, ownerTheme.animations.spring);
+  };
   const renderStars = (rating: number) => {
     const stars = [];
     const fullStars = Math.floor(rating);
@@ -30,20 +54,20 @@ export const VetSearchCard: React.FC<VetSearchCardProps> = ({ veterinario, onPre
 
     for (let i = 0; i < fullStars; i++) {
       stars.push(
-        <Ionicons key={i} name="star" size={14} color={vetTheme.colors.accent} />
+        <Ionicons key={i} name="star" size={14} color={ownerTheme.colors.accent} />
       );
     }
 
     if (hasHalfStar) {
       stars.push(
-        <Ionicons key="half" name="star-half" size={14} color={vetTheme.colors.accent} />
+        <Ionicons key="half" name="star-half" size={14} color={ownerTheme.colors.accent} />
       );
     }
 
     const emptyStars = 5 - Math.ceil(rating);
     for (let i = 0; i < emptyStars; i++) {
       stars.push(
-        <Ionicons key={`empty-${i}`} name="star-outline" size={14} color={vetTheme.colors.text.light} />
+        <Ionicons key={`empty-${i}`} name="star-outline" size={14} color={ownerTheme.colors.textLight} />
       );
     }
 
@@ -67,187 +91,211 @@ export const VetSearchCard: React.FC<VetSearchCardProps> = ({ veterinario, onPre
   };
 
   return (
-    <TouchableOpacity style={styles.card} onPress={onPress} activeOpacity={0.7}>
-      {/* Header con foto y info básica */}
-      <View style={styles.header}>
-        <View style={styles.avatarContainer}>
-          {veterinario.avatar ? (
-            <Image source={{ uri: veterinario.avatar }} style={styles.avatar} />
-          ) : (
-            <View style={styles.avatarPlaceholder}>
-              <Text style={styles.avatarText}>
-                {veterinario.nombre.split(' ').map(n => n.charAt(0)).join('')}
+    <Animated.View
+      entering={FadeInUp.delay(index * 100).springify()}
+      style={[styles.cardContainer, animatedStyle]}
+    >
+      <PremiumCard
+        variant="elevated"
+        size="medium"
+        onPress={onPress}
+        onPressIn={handlePressIn}
+        onPressOut={handlePressOut}
+        customStyle={styles.card}
+      >
+        {/* Header con foto y info básica */}
+        <View style={styles.header}>
+          <View style={styles.avatarContainer}>
+            {veterinario.avatar ? (
+              <Image source={{ uri: veterinario.avatar }} style={styles.avatar} />
+            ) : (
+              <LinearGradient
+                colors={[`${ownerTheme.colors.primary}20`, `${ownerTheme.colors.secondary}10`]}
+                style={styles.avatarGradient}
+              >
+                <Text style={styles.avatarText}>
+                  {veterinario.nombre.split(' ').map(n => n.charAt(0)).join('')}
+                </Text>
+              </LinearGradient>
+            )}
+            
+            {veterinario.verificado && (
+              <Animated.View 
+                entering={BounceIn.delay(200 + index * 100)}
+                style={styles.verificadoBadge}
+              >
+                <Ionicons name="checkmark-circle" size={18} color={ownerTheme.colors.success} />
+              </Animated.View>
+            )}
+          </View>
+
+          <View style={styles.infoBasica}>
+            <Text style={styles.nombre} numberOfLines={1}>{veterinario.nombre}</Text>
+            <Text style={styles.especialidad} numberOfLines={1}>{veterinario.especialidad}</Text>
+            <Text style={styles.experiencia}>{veterinario.experiencia} años de experiencia</Text>
+            
+            {/* Rating y reseñas */}
+            <View style={styles.ratingContainer}>
+              <View style={styles.stars}>
+                {renderStars(veterinario.rating)}
+              </View>
+              <Text style={styles.ratingText}>
+                {veterinario.rating} ({formatearNumero(veterinario.totalReviews)})
               </Text>
             </View>
-          )}
-          {veterinario.verificado && (
-            <View style={styles.verificadoBadge}>
-              <Ionicons name="checkmark-circle" size={16} color={vetTheme.colors.status.success} />
+          </View>
+
+          {/* Información de distancia y precio */}
+          <View style={styles.infoSecundaria}>
+            {veterinario.distancia && (
+              <View style={styles.distanciaContainer}>
+                <Ionicons name="location" size={12} color={ownerTheme.colors.primary} />
+                <Text style={styles.distanciaText}>{getDistanciaTexto()}</Text>
+              </View>
+            )}
+            
+            <View style={styles.precioContainer}>
+              <Text style={styles.precioLabel}>Desde</Text>
+              <Text style={styles.precio}>${getPrecioMinimo()}</Text>
             </View>
-          )}
+          </View>
         </View>
 
-        <View style={styles.infoBasica}>
-          <Text style={styles.nombre} numberOfLines={1}>{veterinario.nombre}</Text>
-          <Text style={styles.especialidad} numberOfLines={1}>{veterinario.especialidad}</Text>
-          <Text style={styles.experiencia}>{veterinario.experiencia} años de experiencia</Text>
-          
-          {/* Rating y reseñas */}
-          <View style={styles.ratingContainer}>
-            <View style={styles.stars}>
-              {renderStars(veterinario.rating)}
-            </View>
-            <Text style={styles.ratingText}>
-              {veterinario.rating} ({formatearNumero(veterinario.totalReviews)})
+        {/* Información adicional */}
+        <View style={styles.infoAdicional}>
+          {/* Disponibilidad */}
+          <View style={styles.disponibilidadContainer}>
+            <Ionicons 
+              name="time" 
+              size={14} 
+              color={veterinario.proximaDisponibilidad?.includes('hoy') ? ownerTheme.colors.success : ownerTheme.colors.textSecondary} 
+            />
+            <Text style={[
+              styles.disponibilidadText,
+              veterinario.proximaDisponibilidad?.includes('hoy') && styles.disponibleHoy
+            ]}>
+              {veterinario.proximaDisponibilidad || 'Consultar disponibilidad'}
             </Text>
           </View>
+
+          {/* Servicios principales */}
+          <Animated.View 
+            entering={SlideInRight.delay(300 + index * 100)}
+            style={styles.serviciosContainer}
+          >
+            {getServiciosPrincipales().map((servicio, index) => (
+              <View key={index} style={styles.servicioChip}>
+                <Text style={styles.servicioChipText}>{servicio}</Text>
+              </View>
+            ))}
+          </Animated.View>
         </View>
 
-        {/* Información de distancia y precio */}
-        <View style={styles.infoSecundaria}>
-          {veterinario.distancia && (
-            <View style={styles.distanciaContainer}>
-              <Ionicons name="location" size={12} color={vetTheme.colors.primary} />
-              <Text style={styles.distanciaText}>{getDistanciaTexto()}</Text>
-            </View>
-          )}
-          
-          <View style={styles.precioContainer}>
-            <Text style={styles.precioLabel}>Desde</Text>
-            <Text style={styles.precio}>${getPrecioMinimo()}</Text>
-          </View>
-        </View>
-      </View>
-
-      {/* Información adicional */}
-      <View style={styles.infoAdicional}>
-        {/* Disponibilidad */}
-        <View style={styles.disponibilidadContainer}>
-          <Ionicons 
-            name="time" 
-            size={12} 
-            color={veterinario.proximaDisponibilidad?.includes('hoy') ? vetTheme.colors.status.success : vetTheme.colors.text.secondary} 
-          />
-          <Text style={[
-            styles.disponibilidadText,
-            veterinario.proximaDisponibilidad?.includes('hoy') && styles.disponibleHoy
-          ]}>
-            {veterinario.proximaDisponibilidad || 'Consultar disponibilidad'}
-          </Text>
-        </View>
-
-        {/* Servicios principales */}
-        <View style={styles.serviciosContainer}>
-          {getServiciosPrincipales().map((servicio, index) => (
-            <View key={index} style={styles.servicioChip}>
-              <Text style={styles.servicioChipText}>{servicio}</Text>
-            </View>
-          ))}
-        </View>
-      </View>
-
-      {/* Footer con características especiales */}
-      <View style={styles.footer}>
-        <View style={styles.caracteristicas}>
-          {veterinario.configuraciones.aceptaUrgencias && (
+        {/* Footer con características especiales */}
+        <View style={styles.footer}>
+          <View style={styles.caracteristicas}>
+            {veterinario.configuraciones.aceptaUrgencias && (
+              <View style={styles.caracteristicaItem}>
+                <Ionicons name="medical" size={12} color={ownerTheme.colors.error} />
+                <Text style={styles.caracteristicaText}>Urgencias</Text>
+              </View>
+            )}
+            
+            {veterinario.configuraciones.serviciosDomicilio && (
+              <View style={styles.caracteristicaItem}>
+                <Ionicons name="home" size={12} color={ownerTheme.colors.primary} />
+                <Text style={styles.caracteristicaText}>Domicilio</Text>
+              </View>
+            )}
+            
             <View style={styles.caracteristicaItem}>
-              <Ionicons name="medical" size={12} color={vetTheme.colors.status.error} />
-              <Text style={styles.caracteristicaText}>Urgencias</Text>
+              <Ionicons name="location-outline" size={12} color={ownerTheme.colors.textSecondary} />
+              <Text style={styles.caracteristicaText}>{veterinario.ubicacion.colonia}</Text>
             </View>
-          )}
-          
-          {veterinario.configuraciones.serviciosDomicilio && (
-            <View style={styles.caracteristicaItem}>
-              <Ionicons name="home" size={12} color={vetTheme.colors.primary} />
-              <Text style={styles.caracteristicaText}>Domicilio</Text>
-            </View>
-          )}
-          
-          <View style={styles.caracteristicaItem}>
-            <Ionicons name="location" size={12} color={vetTheme.colors.text.secondary} />
-            <Text style={styles.caracteristicaText}>{veterinario.ubicacion.colonia}</Text>
           </View>
-        </View>
 
-        <TouchableOpacity style={styles.verPerfilButton} onPress={onPress}>
-          <Text style={styles.verPerfilText}>Ver perfil</Text>
-          <Ionicons name="chevron-forward" size={14} color={vetTheme.colors.primary} />
-        </TouchableOpacity>
-      </View>
-    </TouchableOpacity>
+          <TouchableOpacity 
+            style={styles.verPerfilButton} 
+            onPress={onPress}
+            activeOpacity={0.7}
+          >
+            <LinearGradient
+              colors={[ownerTheme.colors.primary, ownerTheme.colors.secondary]}
+              style={styles.verPerfilGradient}
+            >
+              <Text style={styles.verPerfilText}>Ver perfil</Text>
+              <Ionicons name="chevron-forward" size={14} color={ownerTheme.colors.textInverse} />
+            </LinearGradient>
+          </TouchableOpacity>
+        </View>
+      </PremiumCard>
+    </Animated.View>
   );
 };
 
 const styles = StyleSheet.create({
+  cardContainer: {
+    marginHorizontal: ownerTheme.spacing.lg,
+    marginVertical: ownerTheme.spacing.sm,
+  },
   card: {
-    backgroundColor: 'white',
-    borderRadius: vetTheme.borderRadius.lg,
-    padding: vetTheme.spacing.lg,
-    marginHorizontal: vetTheme.spacing.lg,
-    marginVertical: vetTheme.spacing.sm,
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    backgroundColor: ownerTheme.colors.card,
+    borderRadius: ownerTheme.borderRadius.lg,
+    ...ownerTheme.shadows.medium,
   },
   header: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    marginBottom: vetTheme.spacing.md,
+    marginBottom: ownerTheme.spacing.md,
   },
   avatarContainer: {
     position: 'relative',
-    marginRight: vetTheme.spacing.md,
+    marginRight: ownerTheme.spacing.md,
   },
   avatar: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
+    width: 64,
+    height: 64,
+    borderRadius: ownerTheme.borderRadius.full,
   },
-  avatarPlaceholder: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    backgroundColor: vetTheme.colors.primary,
+  avatarGradient: {
+    width: 64,
+    height: 64,
+    borderRadius: ownerTheme.borderRadius.full,
     alignItems: 'center',
     justifyContent: 'center',
   },
   avatarText: {
-    fontSize: vetTheme.typography.sizes.lg,
-    fontWeight: vetTheme.typography.weights.bold,
-    color: 'white',
+    ...ownerTheme.typography.h3,
+    color: ownerTheme.colors.primary,
+    fontWeight: '700',
   },
   verificadoBadge: {
     position: 'absolute',
-    bottom: -2,
-    right: -2,
-    backgroundColor: 'white',
-    borderRadius: 10,
-    padding: 1,
+    bottom: -4,
+    right: -4,
+    backgroundColor: ownerTheme.colors.card,
+    borderRadius: ownerTheme.borderRadius.full,
+    padding: 2,
+    ...ownerTheme.shadows.small,
   },
   infoBasica: {
     flex: 1,
-    marginRight: vetTheme.spacing.sm,
+    marginRight: ownerTheme.spacing.sm,
   },
   nombre: {
-    fontSize: vetTheme.typography.sizes.lg,
-    fontWeight: vetTheme.typography.weights.semiBold,
-    color: vetTheme.colors.text.primary,
-    marginBottom: vetTheme.spacing.xs,
+    ...ownerTheme.typography.h3,
+    color: ownerTheme.colors.textPrimary,
+    marginBottom: ownerTheme.spacing.xs,
   },
   especialidad: {
-    fontSize: vetTheme.typography.sizes.md,
-    color: vetTheme.colors.text.secondary,
-    marginBottom: vetTheme.spacing.xs,
+    ...ownerTheme.typography.body,
+    color: ownerTheme.colors.textSecondary,
+    marginBottom: ownerTheme.spacing.xs,
   },
   experiencia: {
-    fontSize: vetTheme.typography.sizes.sm,
-    color: vetTheme.colors.text.light,
-    marginBottom: vetTheme.spacing.sm,
+    ...ownerTheme.typography.small,
+    color: ownerTheme.colors.textLight,
+    marginBottom: ownerTheme.spacing.sm,
   },
   ratingContainer: {
     flexDirection: 'row',
@@ -256,11 +304,11 @@ const styles = StyleSheet.create({
   stars: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginRight: vetTheme.spacing.xs,
+    marginRight: ownerTheme.spacing.xs,
   },
   ratingText: {
-    fontSize: vetTheme.typography.sizes.sm,
-    color: vetTheme.colors.text.secondary,
+    ...ownerTheme.typography.small,
+    color: ownerTheme.colors.textSecondary,
   },
   infoSecundaria: {
     alignItems: 'flex-end',
@@ -268,64 +316,64 @@ const styles = StyleSheet.create({
   distanciaContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: vetTheme.spacing.xs,
+    marginBottom: ownerTheme.spacing.xs,
   },
   distanciaText: {
-    fontSize: vetTheme.typography.sizes.sm,
-    color: vetTheme.colors.primary,
-    marginLeft: vetTheme.spacing.xs,
-    fontWeight: vetTheme.typography.weights.medium,
+    ...ownerTheme.typography.small,
+    color: ownerTheme.colors.primary,
+    marginLeft: ownerTheme.spacing.xs,
+    fontWeight: '600',
   },
   precioContainer: {
     alignItems: 'flex-end',
   },
   precioLabel: {
-    fontSize: vetTheme.typography.sizes.xs,
-    color: vetTheme.colors.text.light,
+    ...ownerTheme.typography.small,
+    color: ownerTheme.colors.textLight,
   },
   precio: {
-    fontSize: vetTheme.typography.sizes.lg,
-    fontWeight: vetTheme.typography.weights.bold,
-    color: vetTheme.colors.status.success,
+    ...ownerTheme.typography.h3,
+    fontWeight: '700',
+    color: ownerTheme.colors.success,
   },
   infoAdicional: {
-    paddingVertical: vetTheme.spacing.sm,
+    paddingVertical: ownerTheme.spacing.sm,
     borderTopWidth: 1,
-    borderTopColor: vetTheme.colors.border.light,
+    borderTopColor: ownerTheme.colors.border,
     borderBottomWidth: 1,
-    borderBottomColor: vetTheme.colors.border.light,
-    marginBottom: vetTheme.spacing.sm,
+    borderBottomColor: ownerTheme.colors.border,
+    marginBottom: ownerTheme.spacing.sm,
   },
   disponibilidadContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: vetTheme.spacing.sm,
+    marginBottom: ownerTheme.spacing.sm,
   },
   disponibilidadText: {
-    fontSize: vetTheme.typography.sizes.sm,
-    color: vetTheme.colors.text.secondary,
-    marginLeft: vetTheme.spacing.xs,
+    ...ownerTheme.typography.small,
+    color: ownerTheme.colors.textSecondary,
+    marginLeft: ownerTheme.spacing.xs,
   },
   disponibleHoy: {
-    color: vetTheme.colors.status.success,
-    fontWeight: vetTheme.typography.weights.medium,
+    color: ownerTheme.colors.success,
+    fontWeight: '600',
   },
   serviciosContainer: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: vetTheme.spacing.xs,
+    gap: ownerTheme.spacing.xs,
   },
   servicioChip: {
-    backgroundColor: vetTheme.colors.surface,
-    paddingHorizontal: vetTheme.spacing.sm,
-    paddingVertical: vetTheme.spacing.xs,
-    borderRadius: vetTheme.borderRadius.sm,
+    backgroundColor: ownerTheme.colors.surface,
+    paddingHorizontal: ownerTheme.spacing.sm,
+    paddingVertical: ownerTheme.spacing.xs,
+    borderRadius: ownerTheme.borderRadius.md,
     borderWidth: 1,
-    borderColor: vetTheme.colors.border.light,
+    borderColor: ownerTheme.colors.border,
   },
   servicioChipText: {
-    fontSize: vetTheme.typography.sizes.xs,
-    color: vetTheme.colors.text.secondary,
+    ...ownerTheme.typography.small,
+    color: ownerTheme.colors.textSecondary,
   },
   footer: {
     flexDirection: 'row',
@@ -335,28 +383,33 @@ const styles = StyleSheet.create({
   caracteristicas: {
     flexDirection: 'row',
     flex: 1,
-    gap: vetTheme.spacing.md,
+    gap: ownerTheme.spacing.md,
+    flexWrap: 'wrap',
   },
   caracteristicaItem: {
     flexDirection: 'row',
     alignItems: 'center',
+    gap: ownerTheme.spacing.xs,
   },
   caracteristicaText: {
-    fontSize: vetTheme.typography.sizes.xs,
-    color: vetTheme.colors.text.light,
-    marginLeft: vetTheme.spacing.xs,
+    ...ownerTheme.typography.small,
+    color: ownerTheme.colors.textLight,
   },
   verPerfilButton: {
+    borderRadius: ownerTheme.borderRadius.md,
+    overflow: 'hidden',
+  },
+  verPerfilGradient: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: vetTheme.spacing.xs,
-    paddingHorizontal: vetTheme.spacing.sm,
+    paddingVertical: ownerTheme.spacing.sm,
+    paddingHorizontal: ownerTheme.spacing.md,
+    gap: ownerTheme.spacing.xs,
   },
   verPerfilText: {
-    fontSize: vetTheme.typography.sizes.sm,
-    color: vetTheme.colors.primary,
-    fontWeight: vetTheme.typography.weights.medium,
-    marginRight: vetTheme.spacing.xs,
+    ...ownerTheme.typography.button,
+    color: ownerTheme.colors.textInverse,
+    fontSize: 12,
   },
 });
 

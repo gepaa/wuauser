@@ -11,27 +11,102 @@ class ChatService {
 
   async getChats(userId: string): Promise<Chat[]> {
     try {
-      // Try Supabase first if available
+      console.log('📱 Loading chats for user:', userId);
+
+      // Check local storage first
+      const chatsJson = await AsyncStorage.getItem(`chats_${userId}`);
+      if (chatsJson) {
+        const localChats = JSON.parse(chatsJson);
+        if (localChats.length > 0) {
+          console.log('✅ Found local chats:', localChats.length);
+          return localChats;
+        }
+      }
+
+      // If no local chats, create mock data
+      console.log('🔧 Creating mock chats...');
+      const mockChats: Chat[] = [
+        {
+          id: 'chat_demo_1',
+          participantIds: ['owner1', 'vet1'],
+          participants: {
+            owner: { id: 'owner1', name: 'Tú' },
+            vet: {
+              id: 'vet1',
+              name: 'Dra. María González',
+              clinic: 'Veterinaria San José'
+            }
+          },
+          lastMessage: {
+            text: 'Perfecto, veo que Yoky está mucho mejor después del tratamiento.',
+            timestamp: new Date(Date.now() - 3600000).toISOString(),
+            senderId: 'vet1'
+          },
+          unreadCount: 2,
+          createdAt: new Date(Date.now() - 86400000).toISOString()
+        },
+        {
+          id: 'chat_demo_2',
+          participantIds: ['owner1', 'vet2'],
+          participants: {
+            owner: { id: 'owner1', name: 'Tú' },
+            vet: {
+              id: 'vet2',
+              name: 'Dr. Carlos Ruiz',
+              clinic: 'Clínica Veterinaria del Norte'
+            }
+          },
+          lastMessage: {
+            text: 'Tenemos disponibilidad para la vacuna este viernes a las 2pm',
+            timestamp: new Date(Date.now() - 7200000).toISOString(),
+            senderId: 'vet2'
+          },
+          unreadCount: 0,
+          createdAt: new Date(Date.now() - 172800000).toISOString()
+        },
+        {
+          id: 'chat_demo_3',
+          participantIds: ['owner1', 'vet3'],
+          participants: {
+            owner: { id: 'owner1', name: 'Tú' },
+            vet: {
+              id: 'vet3',
+              name: 'Dra. Ana López',
+              clinic: 'Hospital Veterinario Central'
+            }
+          },
+          lastMessage: {
+            text: 'Gracias por la consulta, cualquier duda estoy disponible.',
+            timestamp: new Date(Date.now() - 259200000).toISOString(),
+            senderId: 'vet3'
+          },
+          unreadCount: 0,
+          createdAt: new Date(Date.now() - 259200000).toISOString()
+        }
+      ];
+
+      // Save mock chats to local storage
+      await AsyncStorage.setItem(`chats_${userId}`, JSON.stringify(mockChats));
+      console.log('✅ Mock chats created and saved');
+      return mockChats;
+
+      // Try Supabase if available (commented out for now to prioritize mock data)
+      /*
       if (supabase) {
         console.log('🔄 Loading chats from Supabase...');
         const supabaseChats = await chatRealtimeService.getUserChats(userId);
-        
+
         if (supabaseChats.length > 0) {
           // Cache in AsyncStorage for offline access
           await AsyncStorage.setItem(`chats_${userId}`, JSON.stringify(supabaseChats));
           return supabaseChats;
         }
       }
+      */
 
-      // Fallback to local storage
-      console.log('📱 Loading chats from local storage...');
-      const chatsJson = await AsyncStorage.getItem(`chats_${userId}`);
-      return chatsJson ? JSON.parse(chatsJson) : [];
     } catch (error) {
       console.error('Error getting chats:', error);
-      // Fallback to local storage on error
-      const chatsJson = await AsyncStorage.getItem(`chats_${userId}`);
-      return chatsJson ? JSON.parse(chatsJson) : [];
+      return [];
     }
   }
   
@@ -83,11 +158,52 @@ class ChatService {
     try {
       const messagesKey = `messages_${chatId}`;
       const messagesJson = await AsyncStorage.getItem(messagesKey);
-      const messages = messagesJson ? JSON.parse(messagesJson) : [];
-      
-      return messages.sort((a: Message, b: Message) => 
-        new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
-      );
+
+      if (messagesJson) {
+        const messages = JSON.parse(messagesJson);
+        return messages.sort((a: Message, b: Message) =>
+          new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
+        );
+      }
+
+      // If no messages exist, create mock messages for demo
+      const mockMessages: Message[] = [
+        {
+          id: `msg_${Date.now()}_1`,
+          chatId,
+          senderId: 'owner1',
+          type: 'text',
+          text: 'Hola doctora, ¿cómo vio a Yoky en la consulta?',
+          timestamp: new Date(Date.now() - 7200000).toISOString(),
+          read: true,
+          status: 'read'
+        },
+        {
+          id: `msg_${Date.now()}_2`,
+          chatId,
+          senderId: 'vet1',
+          type: 'text',
+          text: 'Hola! Yoky se ve muy bien, la infección en el oído ya está mejorando.',
+          timestamp: new Date(Date.now() - 3600000).toISOString(),
+          read: false,
+          status: 'delivered'
+        },
+        {
+          id: `msg_${Date.now()}_3`,
+          chatId,
+          senderId: 'vet1',
+          type: 'text',
+          text: 'Sigue aplicando las gotas que le receté 2 veces al día por 5 días más.',
+          timestamp: new Date(Date.now() - 3590000).toISOString(),
+          read: false,
+          status: 'delivered'
+        }
+      ];
+
+      // Save mock messages
+      await AsyncStorage.setItem(messagesKey, JSON.stringify(mockMessages));
+      return mockMessages;
+
     } catch (error) {
       console.error('Error getting messages:', error);
       return [];
@@ -396,6 +512,86 @@ class ChatService {
 
   get pushToken(): string | null {
     return chatNotificationService.pushTokenValue;
+  }
+
+  // Mock method for searching veterinarians
+  async searchVeterinarians(query: string): Promise<import('../types/chat').ChatUser[]> {
+    try {
+      // Mock veterinarian data for search
+      const mockVets: import('../types/chat').ChatUser[] = [
+        {
+          id: 'vet1',
+          name: 'Dra. María González',
+          type: 'vet',
+          clinic: 'Veterinaria San José',
+          isOnline: true
+        },
+        {
+          id: 'vet2',
+          name: 'Dr. Carlos Ruiz',
+          type: 'vet',
+          clinic: 'Clínica Veterinaria del Norte',
+          isOnline: false
+        },
+        {
+          id: 'vet3',
+          name: 'Dra. Ana López',
+          type: 'vet',
+          clinic: 'Hospital Veterinario Central',
+          isOnline: true
+        },
+        {
+          id: 'vet4',
+          name: 'Dr. Roberto Martínez',
+          type: 'vet',
+          clinic: 'Clínica Animal Care',
+          isOnline: false
+        }
+      ];
+
+      // Filter vets based on query
+      const filteredVets = mockVets.filter(vet =>
+        vet.name.toLowerCase().includes(query.toLowerCase()) ||
+        (vet.clinic && vet.clinic.toLowerCase().includes(query.toLowerCase()))
+      );
+
+      return filteredVets;
+    } catch (error) {
+      console.error('Error searching veterinarians:', error);
+      return [];
+    }
+  }
+
+  // Method to create a new chat between owner and vet
+  async createChat(owner: import('../types/chat').ChatUser, vet: import('../types/chat').ChatUser): Promise<import('../types/chat').Chat> {
+    try {
+      const chatId = `chat_${Date.now()}`;
+      const newChat: import('../types/chat').Chat = {
+        id: chatId,
+        participantIds: [owner.id, vet.id],
+        participants: {
+          owner: { id: owner.id, name: owner.name },
+          vet: { id: vet.id, name: vet.name, clinic: vet.clinic }
+        },
+        lastMessage: {
+          text: 'Conversación iniciada',
+          timestamp: new Date().toISOString(),
+          senderId: owner.id
+        },
+        unreadCount: 0,
+        createdAt: new Date().toISOString()
+      };
+
+      // Save the new chat for the owner
+      const ownerChats = await this.getChats(owner.id);
+      ownerChats.push(newChat);
+      await AsyncStorage.setItem(`chats_${owner.id}`, JSON.stringify(ownerChats));
+
+      return newChat;
+    } catch (error) {
+      console.error('Error creating chat:', error);
+      throw error;
+    }
   }
 }
 

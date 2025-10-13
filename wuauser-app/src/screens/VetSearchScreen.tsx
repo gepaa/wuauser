@@ -16,7 +16,7 @@ import MapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps';
 import * as Location from 'expo-location';
 import { mockVeterinarios, MockVeterinario, calcularDistancia, getProximaDisponibilidad } from '../data/mockVeterinarios';
 import VetSearchCard from '../components/search/VetSearchCard';
-import { vetTheme } from '../constants/vetTheme';
+import { ownerTheme } from '../constants/ownerTheme';
 
 interface VetSearchScreenProps {
   navigation: any;
@@ -172,10 +172,11 @@ export const VetSearchScreen: React.FC<VetSearchScreenProps> = ({ navigation }) 
     navigation.navigate('VetProfileDetail', { veterinarioId: veterinario.id });
   };
 
-  const renderVeterinarioItem = ({ item }: { item: MockVeterinario }) => (
+  const renderVeterinarioItem = ({ item, index }: { item: MockVeterinario; index: number }) => (
     <VetSearchCard
       veterinario={item}
       onPress={() => abrirPerfilVeterinario(item)}
+      index={index}
     />
   );
 
@@ -255,7 +256,7 @@ export const VetSearchScreen: React.FC<VetSearchScreenProps> = ({ navigation }) 
                 <Ionicons 
                   name="medical" 
                   size={16} 
-                  color={filtros.aceptaUrgencias ? 'white' : vetTheme.colors.text.secondary} 
+                  color={filtros.aceptaUrgencias ? 'white' : ownerTheme.colors.text.secondary} 
                 />
                 <Text style={[
                   styles.filtroBooleanoTexto,
@@ -272,7 +273,7 @@ export const VetSearchScreen: React.FC<VetSearchScreenProps> = ({ navigation }) 
                 <Ionicons 
                   name="home" 
                   size={16} 
-                  color={filtros.serviciosDomicilio ? 'white' : vetTheme.colors.text.secondary} 
+                  color={filtros.serviciosDomicilio ? 'white' : ownerTheme.colors.text.secondary} 
                 />
                 <Text style={[
                   styles.filtroBooleanoTexto,
@@ -304,7 +305,7 @@ export const VetSearchScreen: React.FC<VetSearchScreenProps> = ({ navigation }) 
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-          <Ionicons name="arrow-back" size={24} color={vetTheme.colors.text.primary} />
+          <Ionicons name="arrow-back" size={24} color={ownerTheme.colors.textPrimary} />
         </TouchableOpacity>
         <View style={styles.headerInfo}>
           <Text style={styles.headerTitle}>Veterinarios</Text>
@@ -317,17 +318,17 @@ export const VetSearchScreen: React.FC<VetSearchScreenProps> = ({ navigation }) 
       {/* Barra de búsqueda */}
       <View style={styles.searchContainer}>
         <View style={styles.searchInputContainer}>
-          <Ionicons name="search" size={20} color={vetTheme.colors.text.light} />
+          <Ionicons name="search" size={20} color={ownerTheme.colors.text.light} />
           <TextInput
             style={styles.searchInput}
             placeholder="Buscar por nombre, especialidad o servicio"
             value={busqueda}
             onChangeText={setBusqueda}
-            placeholderTextColor={vetTheme.colors.text.light}
+            placeholderTextColor={ownerTheme.colors.text.light}
           />
           {busqueda.length > 0 && (
             <TouchableOpacity onPress={() => setBusqueda('')}>
-              <Ionicons name="close-circle" size={20} color={vetTheme.colors.text.light} />
+              <Ionicons name="close-circle" size={20} color={ownerTheme.colors.text.light} />
             </TouchableOpacity>
           )}
         </View>
@@ -336,7 +337,7 @@ export const VetSearchScreen: React.FC<VetSearchScreenProps> = ({ navigation }) 
           style={styles.filterButton}
           onPress={() => setMostrarFiltros(true)}
         >
-          <Ionicons name="options" size={20} color={vetTheme.colors.primary} />
+          <Ionicons name="options" size={20} color={ownerTheme.colors.primary} />
         </TouchableOpacity>
       </View>
 
@@ -349,7 +350,7 @@ export const VetSearchScreen: React.FC<VetSearchScreenProps> = ({ navigation }) 
           <Ionicons 
             name="list" 
             size={20} 
-            color={vistaActiva === 'lista' ? vetTheme.colors.primary : vetTheme.colors.text.secondary} 
+            color={vistaActiva === 'lista' ? ownerTheme.colors.primary : ownerTheme.colors.text.secondary} 
           />
           <Text style={[
             styles.tabText,
@@ -366,7 +367,7 @@ export const VetSearchScreen: React.FC<VetSearchScreenProps> = ({ navigation }) 
           <Ionicons 
             name="map" 
             size={20} 
-            color={vistaActiva === 'mapa' ? vetTheme.colors.primary : vetTheme.colors.text.secondary} 
+            color={vistaActiva === 'mapa' ? ownerTheme.colors.primary : ownerTheme.colors.text.secondary} 
           />
           <Text style={[
             styles.tabText,
@@ -387,7 +388,7 @@ export const VetSearchScreen: React.FC<VetSearchScreenProps> = ({ navigation }) 
           contentContainerStyle={styles.listaContainer}
           ListEmptyComponent={() => (
             <View style={styles.emptyContainer}>
-              <Ionicons name="search" size={48} color={vetTheme.colors.text.light} />
+              <Ionicons name="search" size={48} color={ownerTheme.colors.text.light} />
               <Text style={styles.emptyTitle}>No se encontraron veterinarios</Text>
               <Text style={styles.emptySubtitle}>
                 Intenta ajustar tus filtros de búsqueda
@@ -422,66 +423,66 @@ export const VetSearchScreen: React.FC<VetSearchScreenProps> = ({ navigation }) 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: vetTheme.colors.surface,
+    backgroundColor: ownerTheme.colors.surface,
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: vetTheme.spacing.lg,
-    paddingVertical: vetTheme.spacing.md,
+    paddingHorizontal: ownerTheme.spacing.lg,
+    paddingVertical: ownerTheme.spacing.md,
     backgroundColor: 'white',
     borderBottomWidth: 1,
-    borderBottomColor: vetTheme.colors.border.light,
+    borderBottomColor: ownerTheme.colors.border.light,
   },
   backButton: {
-    padding: vetTheme.spacing.sm,
-    marginLeft: -vetTheme.spacing.sm,
-    marginRight: vetTheme.spacing.sm,
+    padding: ownerTheme.spacing.sm,
+    marginLeft: -ownerTheme.spacing.sm,
+    marginRight: ownerTheme.spacing.sm,
   },
   headerInfo: {
     flex: 1,
   },
   headerTitle: {
-    fontSize: vetTheme.typography.sizes.xl,
-    fontWeight: vetTheme.typography.weights.bold,
-    color: vetTheme.colors.text.primary,
+    fontSize: 20,
+    fontWeight: ownerTheme.typography.weights.bold,
+    color: ownerTheme.colors.text.primary,
   },
   headerSubtitle: {
-    fontSize: vetTheme.typography.sizes.sm,
-    color: vetTheme.colors.text.secondary,
+    fontSize: ownerTheme.typography.sizes.sm,
+    color: ownerTheme.colors.text.secondary,
     marginTop: 2,
   },
   searchContainer: {
     flexDirection: 'row',
-    paddingHorizontal: vetTheme.spacing.lg,
-    paddingVertical: vetTheme.spacing.md,
+    paddingHorizontal: ownerTheme.spacing.lg,
+    paddingVertical: ownerTheme.spacing.md,
     backgroundColor: 'white',
-    gap: vetTheme.spacing.sm,
+    gap: ownerTheme.spacing.sm,
   },
   searchInputContainer: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: vetTheme.colors.surface,
-    borderRadius: vetTheme.borderRadius.lg,
-    paddingHorizontal: vetTheme.spacing.md,
-    paddingVertical: vetTheme.spacing.sm,
+    backgroundColor: ownerTheme.colors.surface,
+    borderRadius: ownerTheme.borderRadius.lg,
+    paddingHorizontal: ownerTheme.spacing.md,
+    paddingVertical: ownerTheme.spacing.sm,
     borderWidth: 1,
-    borderColor: vetTheme.colors.border.light,
+    borderColor: ownerTheme.colors.border.light,
   },
   searchInput: {
     flex: 1,
-    fontSize: vetTheme.typography.sizes.md,
-    color: vetTheme.colors.text.primary,
-    marginLeft: vetTheme.spacing.sm,
+    fontSize: ownerTheme.typography.sizes.md,
+    color: ownerTheme.colors.text.primary,
+    marginLeft: ownerTheme.spacing.sm,
   },
   filterButton: {
-    backgroundColor: vetTheme.colors.surface,
-    borderRadius: vetTheme.borderRadius.lg,
-    paddingHorizontal: vetTheme.spacing.md,
-    paddingVertical: vetTheme.spacing.sm,
+    backgroundColor: ownerTheme.colors.surface,
+    borderRadius: ownerTheme.borderRadius.lg,
+    paddingHorizontal: ownerTheme.spacing.md,
+    paddingVertical: ownerTheme.spacing.sm,
     borderWidth: 1,
-    borderColor: vetTheme.colors.primary,
+    borderColor: ownerTheme.colors.primary,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -489,48 +490,48 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     backgroundColor: 'white',
     borderBottomWidth: 1,
-    borderBottomColor: vetTheme.colors.border.light,
+    borderBottomColor: ownerTheme.colors.border.light,
   },
   tab: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: vetTheme.spacing.md,
-    gap: vetTheme.spacing.xs,
+    paddingVertical: ownerTheme.spacing.md,
+    gap: ownerTheme.spacing.xs,
   },
   tabActivo: {
     borderBottomWidth: 2,
-    borderBottomColor: vetTheme.colors.primary,
+    borderBottomColor: ownerTheme.colors.primary,
   },
   tabText: {
-    fontSize: vetTheme.typography.sizes.md,
-    color: vetTheme.colors.text.secondary,
+    fontSize: ownerTheme.typography.sizes.md,
+    color: ownerTheme.colors.text.secondary,
   },
   tabTextActivo: {
-    color: vetTheme.colors.primary,
-    fontWeight: vetTheme.typography.weights.medium,
+    color: ownerTheme.colors.primary,
+    fontWeight: ownerTheme.typography.weights.medium,
   },
   listaContainer: {
-    paddingVertical: vetTheme.spacing.sm,
+    paddingVertical: ownerTheme.spacing.sm,
   },
   emptyContainer: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: vetTheme.spacing.xl,
-    paddingVertical: vetTheme.spacing.xl * 2,
+    paddingHorizontal: ownerTheme.spacing.xl,
+    paddingVertical: ownerTheme.spacing.xl * 2,
   },
   emptyTitle: {
-    fontSize: vetTheme.typography.sizes.lg,
-    fontWeight: vetTheme.typography.weights.medium,
-    color: vetTheme.colors.text.secondary,
-    marginTop: vetTheme.spacing.md,
-    marginBottom: vetTheme.spacing.sm,
+    fontSize: ownerTheme.typography.sizes.lg,
+    fontWeight: ownerTheme.typography.weights.medium,
+    color: ownerTheme.colors.text.secondary,
+    marginTop: ownerTheme.spacing.md,
+    marginBottom: ownerTheme.spacing.sm,
   },
   emptySubtitle: {
-    fontSize: vetTheme.typography.sizes.md,
-    color: vetTheme.colors.text.light,
+    fontSize: ownerTheme.typography.sizes.md,
+    color: ownerTheme.colors.text.light,
     textAlign: 'center',
   },
   mapa: {
@@ -540,7 +541,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   marker: {
-    backgroundColor: vetTheme.colors.primary,
+    backgroundColor: ownerTheme.colors.primary,
     borderRadius: 20,
     width: 40,
     height: 40,
@@ -564,35 +565,35 @@ const styles = StyleSheet.create({
     borderTopWidth: 10,
     borderLeftColor: 'transparent',
     borderRightColor: 'transparent',
-    borderTopColor: vetTheme.colors.primary,
+    borderTopColor: ownerTheme.colors.primary,
     marginTop: -2,
   },
   modalContainer: {
     flex: 1,
-    backgroundColor: vetTheme.colors.surface,
+    backgroundColor: ownerTheme.colors.surface,
   },
   modalHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: vetTheme.spacing.lg,
-    paddingVertical: vetTheme.spacing.md,
+    paddingHorizontal: ownerTheme.spacing.lg,
+    paddingVertical: ownerTheme.spacing.md,
     backgroundColor: 'white',
     borderBottomWidth: 1,
-    borderBottomColor: vetTheme.colors.border.light,
+    borderBottomColor: ownerTheme.colors.border.light,
   },
   modalCancelText: {
-    fontSize: vetTheme.typography.sizes.md,
-    color: vetTheme.colors.text.secondary,
+    fontSize: ownerTheme.typography.sizes.md,
+    color: ownerTheme.colors.text.secondary,
   },
   modalTitle: {
-    fontSize: vetTheme.typography.sizes.lg,
-    fontWeight: vetTheme.typography.weights.semiBold,
-    color: vetTheme.colors.text.primary,
+    fontSize: ownerTheme.typography.sizes.lg,
+    fontWeight: ownerTheme.typography.weights.semiBold,
+    color: ownerTheme.colors.text.primary,
   },
   modalResetText: {
-    fontSize: vetTheme.typography.sizes.md,
-    color: vetTheme.colors.primary,
+    fontSize: ownerTheme.typography.sizes.md,
+    color: ownerTheme.colors.primary,
   },
   modalContent: {
     flex: 1,
@@ -602,61 +603,61 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: vetTheme.spacing.lg,
-    paddingVertical: vetTheme.spacing.lg,
+    paddingHorizontal: ownerTheme.spacing.lg,
+    paddingVertical: ownerTheme.spacing.lg,
     borderBottomWidth: 1,
-    borderBottomColor: vetTheme.colors.border.light,
+    borderBottomColor: ownerTheme.colors.border.light,
   },
   filtroTitulo: {
-    fontSize: vetTheme.typography.sizes.md,
-    color: vetTheme.colors.text.primary,
+    fontSize: ownerTheme.typography.sizes.md,
+    color: ownerTheme.colors.text.primary,
   },
   filtroValor: {
-    fontSize: vetTheme.typography.sizes.md,
-    color: vetTheme.colors.text.secondary,
+    fontSize: ownerTheme.typography.sizes.md,
+    color: ownerTheme.colors.text.secondary,
   },
   filtrosBooleanos: {
-    padding: vetTheme.spacing.lg,
-    gap: vetTheme.spacing.md,
+    padding: ownerTheme.spacing.lg,
+    gap: ownerTheme.spacing.md,
   },
   filtroBooleano: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: vetTheme.colors.surface,
-    paddingHorizontal: vetTheme.spacing.md,
-    paddingVertical: vetTheme.spacing.md,
-    borderRadius: vetTheme.borderRadius.md,
+    backgroundColor: ownerTheme.colors.surface,
+    paddingHorizontal: ownerTheme.spacing.md,
+    paddingVertical: ownerTheme.spacing.md,
+    borderRadius: ownerTheme.borderRadius.md,
     borderWidth: 1,
-    borderColor: vetTheme.colors.border.medium,
+    borderColor: ownerTheme.colors.border.medium,
   },
   filtroBooleanoActivo: {
-    backgroundColor: vetTheme.colors.primary,
-    borderColor: vetTheme.colors.primary,
+    backgroundColor: ownerTheme.colors.primary,
+    borderColor: ownerTheme.colors.primary,
   },
   filtroBooleanoTexto: {
-    fontSize: vetTheme.typography.sizes.md,
-    color: vetTheme.colors.text.secondary,
-    marginLeft: vetTheme.spacing.sm,
+    fontSize: ownerTheme.typography.sizes.md,
+    color: ownerTheme.colors.text.secondary,
+    marginLeft: ownerTheme.spacing.sm,
   },
   filtroBooleanoTextoActivo: {
     color: 'white',
   },
   modalFooter: {
-    paddingHorizontal: vetTheme.spacing.lg,
-    paddingVertical: vetTheme.spacing.lg,
+    paddingHorizontal: ownerTheme.spacing.lg,
+    paddingVertical: ownerTheme.spacing.lg,
     backgroundColor: 'white',
     borderTopWidth: 1,
-    borderTopColor: vetTheme.colors.border.light,
+    borderTopColor: ownerTheme.colors.border.light,
   },
   aplicarFiltrosButton: {
-    backgroundColor: vetTheme.colors.primary,
-    paddingVertical: vetTheme.spacing.lg,
-    borderRadius: vetTheme.borderRadius.md,
+    backgroundColor: ownerTheme.colors.primary,
+    paddingVertical: ownerTheme.spacing.lg,
+    borderRadius: ownerTheme.borderRadius.md,
     alignItems: 'center',
   },
   aplicarFiltrosText: {
-    fontSize: vetTheme.typography.sizes.md,
-    fontWeight: vetTheme.typography.weights.semiBold,
+    fontSize: ownerTheme.typography.sizes.md,
+    fontWeight: ownerTheme.typography.weights.semiBold,
     color: 'white',
   },
 });

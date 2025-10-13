@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  View, 
-  Text, 
-  ScrollView, 
-  StyleSheet, 
+import {
+  View,
+  Text,
+  ScrollView,
+  StyleSheet,
   TouchableOpacity,
   Switch,
   ActivityIndicator,
@@ -13,10 +13,13 @@ import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as SecureStore from 'expo-secure-store';
 import Toast from 'react-native-toast-message';
+import { useFocusEffect } from '@react-navigation/native';
 import { Colors } from '../constants/colors';
 import { authService, supabase } from '../services/supabase';
 import { useCustomAlert } from '../components/CustomAlert';
 import { useUserProfile } from '../hooks/useUserProfile';
+import { RoleSwitcher } from '../components/owner/RoleSwitcher';
+import roleService, { UserRole } from '../services/roleService';
 
 interface ProfileScreenProps {
   navigation: any;
@@ -44,7 +47,122 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ navigation }) => {
   const { profile, loading, refreshProfile } = useUserProfile();
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
   const [locationEnabled, setLocationEnabled] = useState(true);
+  const [currentRole, setCurrentRole] = useState<UserRole>('dueno');
   const { showAlert, AlertComponent } = useCustomAlert();
+
+  useEffect(() => {
+    // Initialize role and subscribe to changes
+    const initializeRole = async () => {
+      await roleService.initialize();
+      setCurrentRole(roleService.getCurrentRole());
+    };
+
+    initializeRole();
+
+    // Subscribe to role changes
+    const unsubscribe = roleService.subscribe((newRole) => {
+      setCurrentRole(newRole);
+    });
+
+    return unsubscribe;
+  }, []);
+
+  // Load saved settings on component mount
+  useEffect(() => {
+    const loadSettings = async () => {
+      try {
+        const savedNotifications = await SecureStore.getItemAsync('notifications_enabled');
+        const savedLocation = await SecureStore.getItemAsync('location_enabled');
+
+        if (savedNotifications !== null) {
+          setNotificationsEnabled(JSON.parse(savedNotifications));
+        }
+
+        if (savedLocation !== null) {
+          setLocationEnabled(JSON.parse(savedLocation));
+        }
+      } catch (error) {
+        console.error('Error loading settings:', error);
+      }
+    };
+
+    loadSettings();
+  }, []);
+
+  // Save notification setting when it changes
+  useEffect(() => {
+    const saveNotificationSetting = async () => {
+      try {
+        await SecureStore.setItemAsync('notifications_enabled', JSON.stringify(notificationsEnabled));
+
+        if (profile) { // Only show toast if profile is loaded (not initial load)
+          if (notificationsEnabled) {
+            Toast.show({
+              type: 'success',
+              text1: 'Notificaciones activadas',
+              text2: 'Recibirás alertas importantes de Wuauser',
+              position: 'bottom'
+            });
+          } else {
+            Toast.show({
+              type: 'info',
+              text1: 'Notificaciones desactivadas',
+              text2: 'No recibirás alertas automáticas',
+              position: 'bottom'
+            });
+          }
+        }
+      } catch (error) {
+        console.error('Error saving notification setting:', error);
+      }
+    };
+
+    // Only save if not the first render
+    if (profile) {
+      saveNotificationSetting();
+    }
+  }, [notificationsEnabled, profile]);
+
+  // Save location setting when it changes
+  useEffect(() => {
+    const saveLocationSetting = async () => {
+      try {
+        await SecureStore.setItemAsync('location_enabled', JSON.stringify(locationEnabled));
+
+        if (profile) { // Only show toast if profile is loaded (not initial load)
+          if (locationEnabled) {
+            Toast.show({
+              type: 'success',
+              text1: 'Ubicación activada',
+              text2: 'Podrás ver servicios veterinarios cercanos',
+              position: 'bottom'
+            });
+          } else {
+            Toast.show({
+              type: 'info',
+              text1: 'Ubicación desactivada',
+              text2: 'No se mostrarán servicios basados en ubicación',
+              position: 'bottom'
+            });
+          }
+        }
+      } catch (error) {
+        console.error('Error saving location setting:', error);
+      }
+    };
+
+    // Only save if not the first render
+    if (profile) {
+      saveLocationSetting();
+    }
+  }, [locationEnabled, profile]);
+
+  // Refresh data when screen comes into focus
+  useFocusEffect(
+    React.useCallback(() => {
+      refreshProfile();
+    }, [refreshProfile])
+  );
 
 
   const handleEditProfile = () => {
@@ -52,8 +170,18 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ navigation }) => {
   };
 
   const handleMyPets = () => {
-    // Navigate to MyPets tab
-    navigation.navigate('MisMascotas');
+    // Navigate to MyPets tab (using getParent to access tab navigator)
+    navigation.getParent()?.navigate('MisMascotas');
+  };
+
+  const handleMapView = () => {
+    // Navigate to Map tab
+    navigation.getParent()?.navigate('Mapa');
+  };
+
+  const handleHome = () => {
+    // Navigate to Home tab
+    navigation.getParent()?.navigate('Inicio');
   };
 
   const handlePaymentMethods = () => {
@@ -66,47 +194,56 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ navigation }) => {
   };
 
   const handleNotifications = () => {
-    Toast.show({
+    // Toggle automático ya funciona, solo mostrar info adicional
+    showAlert({
       type: 'info',
-      text1: 'Próximamente',
-      text2: 'La configuración de notificaciones estará disponible pronto.',
-      position: 'bottom'
+      title: 'Configuración de Notificaciones',
+      message: 'Las notificaciones te ayudan a estar al día con:\n\n• Recordatorios de citas\n• Mensajes de veterinarios\n• Actualizaciones importantes\n• Alertas de mascotas perdidas',
+      buttons: [
+        { text: 'Entendido', onPress: () => {} }
+      ]
     });
   };
 
   const handlePrivacy = () => {
-    Toast.show({
+    showAlert({
       type: 'info',
-      text1: 'Próximamente',
-      text2: 'La configuración de privacidad estará disponible pronto.',
-      position: 'bottom'
+      title: 'Privacidad y Seguridad',
+      message: 'Tu privacidad es importante para nosotros.\n\nWuauser protege:\n• Información personal\n• Datos de mascotas\n• Ubicación (solo cuando autorices)\n• Conversaciones con veterinarios\n\nLa configuración avanzada estará disponible pronto.',
+      buttons: [
+        { text: 'Entendido', onPress: () => {} }
+      ]
     });
   };
 
   const handleHelp = () => {
     showAlert({
       type: 'info',
-      title: 'Centro de Ayuda',
-      message: '¿Necesitas ayuda con Wuauser?',
+      title: 'Centro de Ayuda - Wuauser',
+      message: '¿En qué podemos ayudarte hoy?',
       buttons: [
         { text: 'Cancelar', style: 'cancel', onPress: () => {} },
-        { 
-          text: 'FAQ', 
-          onPress: () => Toast.show({
-            type: 'info',
-            text1: 'FAQ',
-            text2: 'Las preguntas frecuentes estarán disponibles pronto.',
-            position: 'bottom'
-          })
+        {
+          text: 'WhatsApp Soporte',
+          onPress: () => {
+            Toast.show({
+              type: 'info',
+              text1: 'Contactando soporte...',
+              text2: 'WhatsApp: +52 55 1234 5678',
+              position: 'bottom'
+            });
+          }
         },
-        { 
-          text: 'Contactar', 
-          onPress: () => Toast.show({
-            type: 'info',
-            text1: 'Contacto',
-            text2: 'El soporte al cliente estará disponible pronto.',
-            position: 'bottom'
-          })
+        {
+          text: 'Email Soporte',
+          onPress: () => {
+            Toast.show({
+              type: 'info',
+              text1: 'Soporte por Email',
+              text2: 'Escríbenos a: soporte@wuauser.com',
+              position: 'bottom'
+            });
+          }
         }
       ]
     });
@@ -288,6 +425,22 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ navigation }) => {
           </View>
         </View>
       </LinearGradient>
+
+      {/* Role Switcher */}
+      <View style={styles.roleSwitcherContainer}>
+        <RoleSwitcher 
+          currentRole={currentRole}
+          onRoleSwitch={(newRole) => {
+            setCurrentRole(newRole);
+            // Navigate to the appropriate home screen for the new role
+            const homeScreen = roleService.getHomeScreen(newRole);
+            navigation.reset({
+              index: 0,
+              routes: [{ name: homeScreen }],
+            });
+          }}
+        />
+      </View>
 
       {/* Profile Options */}
       <View style={styles.optionsContainer}>
@@ -511,6 +664,11 @@ const styles = StyleSheet.create({
   },
   safetySpace: {
     height: 100,
+  },
+  roleSwitcherContainer: {
+    paddingHorizontal: 16,
+    paddingTop: 20,
+    paddingBottom: 10,
   },
   refreshContainer: {
     paddingHorizontal: 16,

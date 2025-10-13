@@ -11,7 +11,7 @@ import {
 } from 'native-base';
 import { CardField, useStripe } from '@stripe/stripe-react-native';
 import { paymentService, CreatePaymentParams } from '../services/paymentService';
-import { colors } from '../constants/colors';
+import { Colors } from '../constants/colors';
 
 interface PaymentScreenProps {
   citaId: string;
@@ -112,7 +112,7 @@ export const PaymentScreen: React.FC<PaymentScreenProps> = ({
   if (loading && !clientSecret) {
     return (
       <Box flex={1} justifyContent="center" alignItems="center">
-        <Spinner size="large" color={colors.primary} />
+        <Spinner size="large" color={Colors.primary} />
         <Text mt={4}>Preparando el pago...</Text>
       </Box>
     );
@@ -122,7 +122,7 @@ export const PaymentScreen: React.FC<PaymentScreenProps> = ({
     <Box flex={1} bg="white" p={6}>
       <VStack space={6} flex={1}>
         <VStack space={3}>
-          <Text fontSize="xl" fontWeight="bold" color={colors.primary}>
+          <Text fontSize="xl" fontWeight="bold" color={Colors.primary}>
             Confirmar Pago
           </Text>
           <Text fontSize="md" color="gray.600">
@@ -161,7 +161,7 @@ export const PaymentScreen: React.FC<PaymentScreenProps> = ({
                 <Text fontSize="lg" fontWeight="bold">
                   Total:
                 </Text>
-                <Text fontSize="lg" fontWeight="bold" color={colors.primary}>
+                <Text fontSize="lg" fontWeight="bold" color={Colors.primary}>
                   ${amount.toFixed(2)} MXN
                 </Text>
               </HStack>
@@ -216,8 +216,8 @@ export const PaymentScreen: React.FC<PaymentScreenProps> = ({
         {/* Action Buttons */}
         <VStack space={3} mt="auto">
           <Button
-            bg={colors.primary}
-            _pressed={{ bg: colors.secondary }}
+            bg={Colors.primary}
+            _pressed={{ bg: Colors.secondary }}
             isLoading={loading}
             isDisabled={!cardComplete || loading}
             onPress={handlePayment}
@@ -229,8 +229,8 @@ export const PaymentScreen: React.FC<PaymentScreenProps> = ({
           
           <Button
             variant="outline"
-            borderColor={colors.primary}
-            _text={{ color: colors.primary }}
+            borderColor={Colors.primary}
+            _text={{ color: Colors.primary }}
             onPress={onPaymentCancel}
             isDisabled={loading}
           >

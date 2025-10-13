@@ -25,7 +25,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { mapService, ClinicLocation, SearchFilters } from '../services/mapService';
 import chipTrackingService from '../services/chipTrackingService';
 import { PetLocation } from '../types/chipTracking';
-import { colors } from '../constants/colors';
+import { Colors } from '../constants/colors';
 import { navigationTester } from '../utils/navigationTest';
 
 interface MapScreenProps {
@@ -207,12 +207,16 @@ export const MapScreen: React.FC<MapScreenProps> = ({ navigation }) => {
       `Última actualización: ${new Date(pet.timestamp).toLocaleTimeString()}\nBatería: ${pet.battery}%\nSeñal: ${pet.signal === 'strong' ? 'Fuerte' : pet.signal === 'medium' ? 'Media' : 'Débil'}`,
       [
         { text: 'Cerrar', style: 'cancel' },
-        { 
-          text: 'Ver Detalle', 
+        {
+          text: 'Ver Detalle',
           onPress: () => navigation.navigate('PetDetail', { petId: pet.petId })
         }
       ]
     );
+  };
+
+  const handleViewList = () => {
+    navigation.navigate('VeterinariansList');
   };
 
   const getStatusColor = (pet: PetLocation) => {
@@ -243,7 +247,7 @@ export const MapScreen: React.FC<MapScreenProps> = ({ navigation }) => {
 
   const renderHeader = () => {
     return (
-      <VStack space={3} p={4} bg={colors.background} safeAreaTop>
+      <VStack space={3} p={4} bg={Colors.background} safeAreaTop>
         {/* Search Bar */}
         <HStack space={2} alignItems="center">
           <Input
@@ -259,7 +263,7 @@ export const MapScreen: React.FC<MapScreenProps> = ({ navigation }) => {
             borderRadius="lg"
           />
           <Pressable onPress={() => setShowFilters(true)}>
-            <Icon as={<Ionicons name="options" />} size={6} color={colors.primary} />
+            <Icon as={<Ionicons name="options" />} size={6} color={Colors.primary} />
           </Pressable>
         </HStack>
 
@@ -274,7 +278,7 @@ export const MapScreen: React.FC<MapScreenProps> = ({ navigation }) => {
               key={key}
               flex={1}
               onPress={() => setMapMode(key)}
-              bg={mapMode === key ? colors.primary : 'transparent'}
+              bg={mapMode === key ? Colors.primary : 'transparent'}
               borderRadius="md"
               py={2}
               alignItems="center"
@@ -283,12 +287,12 @@ export const MapScreen: React.FC<MapScreenProps> = ({ navigation }) => {
                 <Icon 
                   as={<Ionicons name={icon} />} 
                   size={4} 
-                  color={mapMode === key ? 'white' : colors.text} 
+                  color={mapMode === key ? 'white' : Colors.text} 
                 />
                 <Text 
                   fontSize="sm" 
                   fontWeight="500"
-                  color={mapMode === key ? 'white' : colors.text}
+                  color={mapMode === key ? 'white' : Colors.text}
                 >
                   {label}
                 </Text>
@@ -327,7 +331,7 @@ export const MapScreen: React.FC<MapScreenProps> = ({ navigation }) => {
         key={index}
         as={<Ionicons name={index < Math.floor(rating) ? 'star' : index < rating ? 'star-half' : 'star-outline'} />}
         size={3}
-        color={colors.primary}
+        color={Colors.primary}
       />
     ));
   };
@@ -335,10 +339,10 @@ export const MapScreen: React.FC<MapScreenProps> = ({ navigation }) => {
   const renderFiltersModal = () => {
     return (
       <Modal isOpen={showFilters} onClose={() => setShowFilters(false)} size="full">
-        <Modal.Content bg={colors.background}>
+        <Modal.Content bg={Colors.background}>
           <Modal.CloseButton />
-          <Modal.Header bg={colors.background} borderBottomColor={colors.border}>
-            <Text fontSize="lg" fontWeight="bold" color={colors.text}>
+          <Modal.Header bg={Colors.background} borderBottomColor={Colors.border}>
+            <Text fontSize="lg" fontWeight="bold" color={Colors.text}>
               Filtros de Búsqueda
             </Text>
           </Modal.Header>
@@ -346,7 +350,7 @@ export const MapScreen: React.FC<MapScreenProps> = ({ navigation }) => {
             <VStack space={6} flex={1}>
               {/* Radio */}
               <Box>
-                <Text fontSize="md" fontWeight="600" mb={3} color={colors.text}>
+                <Text fontSize="md" fontWeight="600" mb={3} color={Colors.text}>
                   Radio de búsqueda: {filters.radius} km
                 </Text>
                 <Slider
@@ -358,9 +362,9 @@ export const MapScreen: React.FC<MapScreenProps> = ({ navigation }) => {
                   colorScheme="yellow"
                 >
                   <Slider.Track bg="gray.300">
-                    <Slider.FilledTrack bg={colors.primary} />
+                    <Slider.FilledTrack bg={Colors.primary} />
                   </Slider.Track>
-                  <Slider.Thumb bg={colors.primary} />
+                  <Slider.Thumb bg={Colors.primary} />
                 </Slider>
                 <HStack justifyContent="space-between" mt={2}>
                   <Text fontSize="sm" color="muted.500">5 km</Text>
@@ -372,7 +376,7 @@ export const MapScreen: React.FC<MapScreenProps> = ({ navigation }) => {
 
               {/* Rating */}
               <Box>
-                <Text fontSize="md" fontWeight="600" mb={3} color={colors.text}>
+                <Text fontSize="md" fontWeight="600" mb={3} color={Colors.text}>
                   Calificación mínima
                 </Text>
                 <Select
@@ -380,7 +384,7 @@ export const MapScreen: React.FC<MapScreenProps> = ({ navigation }) => {
                   onValueChange={(value) => setFilters(prev => ({ ...prev, minRating: parseFloat(value) }))}
                   placeholder="Cualquier calificación"
                   _selectedItem={{
-                    bg: colors.primary,
+                    bg: Colors.primary,
                     endIcon: <CheckIcon size={5} />
                   }}
                 >
@@ -395,12 +399,12 @@ export const MapScreen: React.FC<MapScreenProps> = ({ navigation }) => {
 
               {/* Emergency Filters */}
               <VStack space={4}>
-                <Text fontSize="md" fontWeight="600" color={colors.text}>
+                <Text fontSize="md" fontWeight="600" color={Colors.text}>
                   Servicios de Emergencia
                 </Text>
                 
                 <HStack justifyContent="space-between" alignItems="center">
-                  <Text fontSize="sm" color={colors.text}>Solo clínicas de emergencia</Text>
+                  <Text fontSize="sm" color={Colors.text}>Solo clínicas de emergencia</Text>
                   <Switch
                     isChecked={filters.emergencyOnly}
                     onToggle={(value) => setFilters(prev => ({ ...prev, emergencyOnly: value }))}
@@ -409,7 +413,7 @@ export const MapScreen: React.FC<MapScreenProps> = ({ navigation }) => {
                 </HStack>
                 
                 <HStack justifyContent="space-between" alignItems="center">
-                  <Text fontSize="sm" color={colors.text}>Abiertas 24 horas</Text>
+                  <Text fontSize="sm" color={Colors.text}>Abiertas 24 horas</Text>
                   <Switch
                     isChecked={filters.emergency24h}
                     onToggle={(value) => setFilters(prev => ({ ...prev, emergency24h: value }))}
@@ -419,20 +423,20 @@ export const MapScreen: React.FC<MapScreenProps> = ({ navigation }) => {
               </VStack>
             </VStack>
           </Modal.Body>
-          <Modal.Footer bg={colors.background} borderTopColor={colors.border}>
+          <Modal.Footer bg={Colors.background} borderTopColor={Colors.border}>
             <HStack space={3} width="100%" justifyContent="center">
               <Button
                 variant="ghost"
                 onPress={resetFilters}
                 flex={1}
               >
-                <Text color={colors.text}>Limpiar</Text>
+                <Text color={Colors.text}>Limpiar</Text>
               </Button>
               <Button
-                bg={colors.primary}
+                bg={Colors.primary}
                 onPress={applyFilters}
                 flex={1}
-                _pressed={{ bg: colors.primary + '80' }}
+                _pressed={{ bg: Colors.primary + '80' }}
               >
                 <Text color="white" fontWeight="600">Aplicar Filtros</Text>
               </Button>
@@ -444,7 +448,7 @@ export const MapScreen: React.FC<MapScreenProps> = ({ navigation }) => {
   };
 
   return (
-    <Box flex={1} bg={colors.background}>
+    <Box flex={1} bg={Colors.background}>
       {renderHeader()}
       
       {/* Loading Indicator */}
@@ -452,8 +456,8 @@ export const MapScreen: React.FC<MapScreenProps> = ({ navigation }) => {
         <Center position="absolute" top={0} left={0} right={0} bottom={0} zIndex={10}>
           <Box bg="white" p={4} borderRadius="lg" shadow={2}>
             <VStack space={3} alignItems="center">
-              <Spinner size="lg" color={colors.primary} />
-              <Text color={colors.text}>Buscando clínicas...</Text>
+              <Spinner size="lg" color={Colors.primary} />
+              <Text color={Colors.text}>Buscando clínicas...</Text>
             </VStack>
           </Box>
         </Center>
@@ -489,7 +493,7 @@ export const MapScreen: React.FC<MapScreenProps> = ({ navigation }) => {
             {/* Custom Clinic Marker */}
             <Box alignItems="center">
               <Box
-                bg={clinic.is_emergency ? colors.secondary : colors.primary}
+                bg={clinic.is_emergency ? Colors.secondary : Colors.primary}
                 p={2}
                 borderRadius="full"
                 borderWidth={2}
@@ -507,7 +511,7 @@ export const MapScreen: React.FC<MapScreenProps> = ({ navigation }) => {
                   position="absolute"
                   top={-1}
                   right={-1}
-                  bg={colors.secondary}
+                  bg={Colors.secondary}
                   _text={{ fontSize: "xs", color: "white" }}
                   borderRadius="full"
                 >
@@ -522,7 +526,7 @@ export const MapScreen: React.FC<MapScreenProps> = ({ navigation }) => {
             >
               <Box p={3} minW={280} maxW={320}>
                 <HStack justifyContent="space-between" alignItems="flex-start" mb={2}>
-                  <Text fontSize="md" fontWeight="bold" color={colors.text} flex={1} mr={2}>
+                  <Text fontSize="md" fontWeight="bold" color={Colors.text} flex={1} mr={2}>
                     {clinic.clinic_name}
                   </Text>
                   {clinic.is_verified && (
@@ -564,10 +568,10 @@ export const MapScreen: React.FC<MapScreenProps> = ({ navigation }) => {
                   </HStack>
                   
                   <HStack alignItems="center">
-                    <Text fontSize="sm" color={colors.primary} fontWeight="600" mr={1}>
+                    <Text fontSize="sm" color={Colors.primary} fontWeight="600" mr={1}>
                       Ver Perfil
                     </Text>
-                    <Icon as={<Ionicons name="chevron-forward" />} size={3} color={colors.primary} />
+                    <Icon as={<Ionicons name="chevron-forward" />} size={3} color={Colors.primary} />
                   </HStack>
                 </HStack>
               </Box>
@@ -618,24 +622,46 @@ export const MapScreen: React.FC<MapScreenProps> = ({ navigation }) => {
       {/* Status Bar */}
       {(clinicas.length > 0 || petsWithChip.length > 0) && (
         <Box position="absolute" bottom={10} left={4} right={4}>
-          <HStack bg="white" p={3} borderRadius="lg" shadow={3} justifyContent="space-around">
-            {mapMode !== 'mascotas' && (
-              <VStack alignItems="center">
-                <Text fontSize="lg" fontWeight="bold" color={colors.primary}>
-                  {clinicas.length}
-                </Text>
-                <Text fontSize="xs" color="muted.500">Clínicas</Text>
-              </VStack>
+          <VStack space={3}>
+            <HStack bg="white" p={3} borderRadius="lg" shadow={3} justifyContent="space-around">
+              {mapMode !== 'mascotas' && (
+                <VStack alignItems="center">
+                  <Text fontSize="lg" fontWeight="bold" color={Colors.primary}>
+                    {clinicas.length}
+                  </Text>
+                  <Text fontSize="xs" color="muted.500">Clínicas</Text>
+                </VStack>
+              )}
+              {mapMode !== 'clinicas' && (
+                <VStack alignItems="center">
+                  <Text fontSize="lg" fontWeight="bold" color="#27AE60">
+                    {petsWithChip.length}
+                  </Text>
+                  <Text fontSize="xs" color="muted.500">Mascotas</Text>
+                </VStack>
+              )}
+            </HStack>
+
+            {/* View List Button */}
+            {mapMode !== 'mascotas' && clinicas.length > 0 && (
+              <Pressable onPress={handleViewList}>
+                <HStack
+                  bg={Colors.primary}
+                  p={3}
+                  borderRadius="lg"
+                  shadow={3}
+                  justifyContent="center"
+                  alignItems="center"
+                  space={2}
+                >
+                  <Text fontSize="md" fontWeight="600" color="white">
+                    Ver Lista Completa
+                  </Text>
+                  <Icon as={<Ionicons name="list-outline" />} size={5} color="white" />
+                </HStack>
+              </Pressable>
             )}
-            {mapMode !== 'clinicas' && (
-              <VStack alignItems="center">
-                <Text fontSize="lg" fontWeight="bold" color="#27AE60">
-                  {petsWithChip.length}
-                </Text>
-                <Text fontSize="xs" color="muted.500">Mascotas</Text>
-              </VStack>
-            )}
-          </HStack>
+          </VStack>
         </Box>
       )}
       

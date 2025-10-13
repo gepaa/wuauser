@@ -12,6 +12,8 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { vetTheme } from '../../../constants/vetTheme';
+import { RoleSwitcher } from '../../owner/RoleSwitcher';
+import roleService, { UserRole } from '../../../services/roleService';
 
 interface VetProfileTabProps {
   navigation: any;
@@ -165,6 +167,24 @@ const ProfileSection: React.FC<ProfileSectionProps> = ({ titulo, children }) => 
 
 export const VetProfileTab: React.FC<VetProfileTabProps> = ({ navigation }) => {
   const [refreshing, setRefreshing] = useState(false);
+  const [currentRole, setCurrentRole] = useState<UserRole>('veterinario');
+
+  useEffect(() => {
+    // Initialize role and subscribe to changes
+    const initializeRole = async () => {
+      await roleService.initialize();
+      setCurrentRole(roleService.getCurrentRole());
+    };
+
+    initializeRole();
+
+    // Subscribe to role changes
+    const unsubscribe = roleService.subscribe((newRole) => {
+      setCurrentRole(newRole);
+    });
+
+    return unsubscribe;
+  }, []);
   const [veterinario] = useState(mockVeterinario);
 
   const onRefresh = async () => {
@@ -367,6 +387,22 @@ export const VetProfileTab: React.FC<VetProfileTabProps> = ({ navigation }) => {
           </TouchableOpacity>
         </View>
 
+        {/* Role Switcher */}
+        <View style={styles.roleSwitcherContainer}>
+          <RoleSwitcher 
+            currentRole={currentRole}
+            onRoleSwitch={(newRole) => {
+              setCurrentRole(newRole);
+              // Navigate to the appropriate home screen for the new role
+              const homeScreen = roleService.getHomeScreen(newRole);
+              navigation.reset({
+                index: 0,
+                routes: [{ name: homeScreen }],
+              });
+            }}
+          />
+        </View>
+
         {/* Secciones de Configuración */}
         {perfilSecciones.map((seccion, index) => (
           <ProfileSection key={index} titulo={seccion.titulo}>
@@ -414,6 +450,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     borderBottomWidth: 1,
     borderBottomColor: vetTheme.colors.border.light,
+  },
+  roleSwitcherContainer: {
+    paddingHorizontal: vetTheme.spacing.lg,
+    paddingVertical: vetTheme.spacing.md,
+    backgroundColor: vetTheme.colors.surface,
   },
   avatarContainer: {
     position: 'relative',

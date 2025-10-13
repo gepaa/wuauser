@@ -67,23 +67,34 @@ export const EditProfileScreen: React.FC<EditProfileScreenProps> = ({ navigation
 
   const loadUserProfile = async () => {
     try {
-      // In a real app, this would load from Supabase or AsyncStorage
+      setIsLoading(true);
+
+      // Cargar perfil guardado
       const savedProfile = await SecureStore.getItemAsync('user_profile');
+      const savedEmail = await SecureStore.getItemAsync('user_email');
       const savedImage = await SecureStore.getItemAsync('profile_image');
-      
+
       if (savedProfile) {
         const profile = JSON.parse(savedProfile);
         reset({
-          name: profile.name || 'Usuario Ejemplo',
-          email: profile.email || 'usuario@ejemplo.com',
-          phone: profile.phone || '+52 55 1234 5678',
+          name: profile.name || profile.nombre_completo || '',
+          email: profile.email || savedEmail || '',
+          phone: profile.phone || profile.telefono || '',
+        });
+      } else if (savedEmail) {
+        // Si no hay perfil, usar datos base del email
+        const baseName = savedEmail.split('@')[0].replace(/[._]/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+        reset({
+          name: baseName,
+          email: savedEmail,
+          phone: '+52 55 1234 5678',
         });
       } else {
-        // Default values for demo
+        // Valores por defecto
         reset({
-          name: 'Usuario Ejemplo',
-          email: 'usuario@ejemplo.com',
-          phone: '+52 55 1234 5678',
+          name: 'Usuario',
+          email: '',
+          phone: '',
         });
       }
 
@@ -98,6 +109,8 @@ export const EditProfileScreen: React.FC<EditProfileScreenProps> = ({ navigation
         text2: 'No se pudo cargar el perfil',
         position: 'top'
       });
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -149,18 +162,29 @@ export const EditProfileScreen: React.FC<EditProfileScreenProps> = ({ navigation
 
   const handleSaveProfile = async (data: ProfileFormData) => {
     setIsLoading(true);
-    
+
     try {
-      // In a real app, this would save to Supabase
+      // Load existing profile to preserve other fields
+      const existingProfile = await SecureStore.getItemAsync('user_profile');
+      const currentProfile = existingProfile ? JSON.parse(existingProfile) : {};
+
+      // Create updated profile data with both English and Spanish field names for compatibility
       const profileData = {
+        ...currentProfile,
         name: data.name,
+        nombre_completo: data.name,
         email: data.email,
         phone: data.phone,
+        telefono: data.phone,
         updated_at: new Date().toISOString(),
       };
 
+      // Save updated profile
       await SecureStore.setItemAsync('user_profile', JSON.stringify(profileData));
-      
+
+      // Also update the email separately
+      await SecureStore.setItemAsync('user_email', data.email);
+
       // Reset form dirty state
       reset(data);
       setHasChanges(false);

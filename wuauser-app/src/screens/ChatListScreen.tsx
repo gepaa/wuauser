@@ -67,52 +67,59 @@ export const ChatListScreen: React.FC<ChatListScreenProps> = ({ navigation }) =>
     try {
       console.log('Iniciando carga de chats...');
       setIsLoading(true);
-      
-      // Por ahora usar datos mock hasta que haya chats reales
-      const mockChats: Chat[] = [
-        {
-          id: 'chat_demo_1',
-          participantIds: ['owner1', 'vet1'],
-          participants: {
-            owner: { id: 'owner1', name: 'Tú' },
-            vet: { 
-              id: 'vet1', 
-              name: 'Dra. María González', 
-              clinic: 'Veterinaria San José' 
-            }
+
+      if (currentUser) {
+        // Usar el servicio de chat para obtener datos
+        const chatsData = await chatService.getChats(currentUser.id);
+        console.log('Chats cargados:', chatsData.length);
+        setChats(chatsData);
+      } else {
+        // Si no hay usuario, usar datos mock básicos
+        const mockChats: Chat[] = [
+          {
+            id: 'chat_demo_1',
+            participantIds: ['owner1', 'vet1'],
+            participants: {
+              owner: { id: 'owner1', name: 'Tú' },
+              vet: {
+                id: 'vet1',
+                name: 'Dra. María González',
+                clinic: 'Veterinaria San José'
+              }
+            },
+            lastMessage: {
+              text: 'Gracias por atender a Yoky, ya está mucho mejor',
+              timestamp: new Date(Date.now() - 3600000).toISOString(),
+              senderId: 'owner1'
+            },
+            unreadCount: 2,
+            createdAt: new Date(Date.now() - 86400000).toISOString()
           },
-          lastMessage: {
-            text: 'Gracias por atender a Yoky, ya está mucho mejor',
-            timestamp: new Date(Date.now() - 3600000).toISOString(),
-            senderId: 'owner1'
-          },
-          unreadCount: 2,
-          createdAt: new Date(Date.now() - 86400000).toISOString()
-        },
-        {
-          id: 'chat_demo_2',
-          participantIds: ['owner1', 'vet2'],
-          participants: {
-            owner: { id: 'owner1', name: 'Tú' },
-            vet: { 
-              id: 'vet2', 
-              name: 'Dr. Carlos Ruiz', 
-              clinic: 'Hospital Animal Center' 
-            }
-          },
-          lastMessage: {
-            text: 'La próxima cita es el martes a las 4pm',
-            timestamp: new Date(Date.now() - 7200000).toISOString(),
-            senderId: 'vet2'
-          },
-          unreadCount: 0,
-          createdAt: new Date(Date.now() - 172800000).toISOString()
-        }
-      ];
-      
-      console.log('Chats cargados:', mockChats.length);
-      setChats(mockChats);
-      
+          {
+            id: 'chat_demo_2',
+            participantIds: ['owner1', 'vet2'],
+            participants: {
+              owner: { id: 'owner1', name: 'Tú' },
+              vet: {
+                id: 'vet2',
+                name: 'Dr. Carlos Ruiz',
+                clinic: 'Hospital Animal Center'
+              }
+            },
+            lastMessage: {
+              text: 'La próxima cita es el martes a las 4pm',
+              timestamp: new Date(Date.now() - 7200000).toISOString(),
+              senderId: 'vet2'
+            },
+            unreadCount: 0,
+            createdAt: new Date(Date.now() - 172800000).toISOString()
+          }
+        ];
+
+        console.log('Chats mock cargados:', mockChats.length);
+        setChats(mockChats);
+      }
+
     } catch (error) {
       console.error('Error cargando chats:', error);
       setChats([]); // Mostrar vacío en caso de error

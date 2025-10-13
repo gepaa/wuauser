@@ -1,21 +1,28 @@
 import React, { useState, useEffect } from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
-import { Platform, View } from 'react-native';
-import { Colors } from '../constants/colors';
+import { Platform, View, Text, TouchableOpacity } from 'react-native';
+import Animated, {
+  useSharedValue,
+  useAnimatedStyle,
+  withSpring,
+  withTiming,
+  interpolate,
+  runOnJS,
+} from 'react-native-reanimated';
+import { BlurView } from 'expo-blur';
+import { LinearGradient } from 'expo-linear-gradient';
+import { ownerTheme } from '../constants/ownerTheme';
+import { HapticFeedback } from '../utils/hapticFeedback';
 import { HomeScreen } from '../screens/HomeScreen';
 import { MyPetsScreen } from '../screens/MyPetsScreen';
 import { MapScreen } from '../screens/MapScreen';
 import { ProfileScreen } from '../screens/ProfileScreen';
-import { VetDashboardScreen } from '../screens/VetDashboardScreen';
-import { VetProfessionalDashboard } from '../screens/VetProfessionalDashboard';
-import { VetAppointmentsScreen } from '../screens/VetAppointmentsScreen';
-import { VetAppointmentsProfessional } from '../screens/VetAppointmentsProfessional';
 import { ChatListScreen } from '../screens/ChatListScreen';
-import { VetChatsProfessional } from '../screens/VetChatsProfessional';
 import VetTabNavigator from './VetTabNavigator';
 import roleService, { UserRole } from '../services/roleService';
 import { chatService } from '../services/chatService';
+// import { ModernTabBar } from '../components/owner';
 
 const Tab = createBottomTabNavigator();
 
@@ -89,7 +96,7 @@ export const TabNavigator: React.FC = () => {
               width: 32,
               height: 32,
               borderRadius: 16,
-              backgroundColor: focused ? Colors.primary + '15' : 'transparent',
+              backgroundColor: focused ? '#F4B740' + '15' : 'transparent',
             }}>
               <Ionicons 
                 name={iconName as any} 
@@ -99,8 +106,8 @@ export const TabNavigator: React.FC = () => {
             </View>
           );
         },
-        tabBarActiveTintColor: Colors.primary,
-        tabBarInactiveTintColor: Colors.gray[500],
+        tabBarActiveTintColor: '#F4B740',
+        tabBarInactiveTintColor: '#666',
         tabBarStyle: {
           backgroundColor: '#FFFFFF',
           borderTopWidth: 0,

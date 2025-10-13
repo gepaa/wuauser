@@ -485,7 +485,7 @@ export const veterinarianService = {
   },
 
   async getNearbyVeterinarians(
-    userLocation: { latitude: number; longitude: number },
+    userLocation?: { latitude: number; longitude: number },
     filters?: SearchFilters
   ): Promise<{ data?: VeterinarianData[]; error?: string }> {
     try {
@@ -494,15 +494,16 @@ export const veterinarianService = {
         console.log('🎭 Mock getNearbyVeterinarians:', { userLocation, filters });
         
         let vets = mockVeterinarians.map(vet => {
-          const distance = this.calculateDistance(
+          const openStatus = this.isCurrentlyOpen(vet.schedule);
+
+          // Calculate distance only if userLocation is provided
+          const distance = userLocation ? this.calculateDistance(
             userLocation.latitude,
             userLocation.longitude,
             vet.location.latitude,
             vet.location.longitude
-          );
-          
-          const openStatus = this.isCurrentlyOpen(vet.schedule);
-          
+          ) : Math.random() * 10 + 1; // Random distance between 1-11 km for demo
+
           return {
             ...vet,
             distance: Number(distance.toFixed(1)),

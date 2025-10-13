@@ -33,6 +33,7 @@ import EditHorariosScreen from '../screens/EditHorariosScreen';
 import PerfilPublicoScreen from '../screens/PerfilPublicoScreen';
 import { VetSearchScreen } from '../screens/VetSearchScreen';
 import { VetProfileDetailScreen } from '../screens/VetProfileDetailScreen';
+import { VeterinariansListScreen } from '../screens/VeterinariansListScreen';
 import { TabNavigator } from './TabNavigator';
 
 const Stack = createStackNavigator();
@@ -117,6 +118,26 @@ const AppContent: React.FC = () => {
       <Stack.Screen name="PerfilPublico" component={PerfilPublicoScreen} />
       <Stack.Screen name="VetSearch" component={VetSearchScreen} />
       <Stack.Screen name="VetProfileDetail" component={VetProfileDetailScreen} />
+      <Stack.Screen
+        name="VeterinariansList"
+        component={VeterinariansListScreen}
+        options={{
+          headerShown: true,
+          title: 'Veterinarios Cercanos',
+          headerBackTitle: 'Atrás',
+          headerTintColor: '#F4B740',
+          headerStyle: {
+            backgroundColor: '#FFF',
+            borderBottomWidth: 1,
+            borderBottomColor: '#E0E0E0',
+          },
+          headerTitleStyle: {
+            fontSize: 18,
+            fontWeight: '600',
+            color: '#333',
+          },
+        }}
+      />
     </Stack.Navigator>
   );
 };
