@@ -16,7 +16,7 @@ import { ownerTheme } from '../constants/ownerTheme';
 import { HapticFeedback } from '../utils/hapticFeedback';
 import { HomeScreen } from '../screens/HomeScreen';
 import { MyPetsScreen } from '../screens/MyPetsScreen';
-import { MapScreen } from '../screens/MapScreen';
+// import { MapScreen } from '../screens/MapScreen'; // Desactivado para MVP - se reactivará en v2
 import { ProfileScreen } from '../screens/ProfileScreen';
 import { ChatListScreen } from '../screens/ChatListScreen';
 import VetTabNavigator from './VetTabNavigator';
@@ -81,9 +81,9 @@ export const TabNavigator: React.FC = () => {
             case 'ChatList':
               iconName = focused ? 'chatbubbles' : 'chatbubbles-outline';
               break;
-            case 'Mapa':
-              iconName = focused ? 'map' : 'map-outline';
-              break;
+            // case 'Mapa': // Desactivado para MVP
+            //   iconName = focused ? 'map' : 'map-outline';
+            //   break;
             case 'Perfil':
               iconName = focused ? 'person' : 'person-outline';
               break;
@@ -157,23 +157,24 @@ export const TabNavigator: React.FC = () => {
           tabBarLabel: 'Mis Mascotas',
         }}
       />
-      <Tab.Screen 
-        name="ChatList" 
+      <Tab.Screen
+        name="ChatList"
         component={ChatListScreen}
         options={{
           tabBarLabel: 'Mensajes',
           tabBarBadge: unreadCount > 0 ? unreadCount : undefined
         }}
       />
-      <Tab.Screen 
-        name="Mapa" 
+      {/* MapScreen desactivado para MVP - se reactivará en v2 cuando se implemente GPS tracking */}
+      {/* <Tab.Screen
+        name="Mapa"
         component={MapScreen}
         options={{
           tabBarLabel: 'Mapa',
         }}
-      />
-      <Tab.Screen 
-        name="Perfil" 
+      /> */}
+      <Tab.Screen
+        name="Perfil"
         component={ProfileScreen}
         options={{
           tabBarLabel: 'Perfil',
