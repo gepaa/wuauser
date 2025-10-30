@@ -16,6 +16,12 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 3. Tomar decisiones técnicas de forma autónoma (librerías, arquitectura, patrones)
 4. Explicar decisiones técnicas en español simple y claro
 5. Alertar sobre trade-offs importantes antes de implementar
+6. **IMPORTANTE:** Actualizar `PROGRESS.md` cada vez que:
+   - Se complete una fase o tarea importante
+   - Se tome una decisión técnica clave
+   - Se agregue/modifique funcionalidad significativa
+   - Se haga un commit importante
+   - Al final de cada sesión de trabajo
 
 ## Project Overview
 
@@ -246,4 +252,62 @@ REFACTOR: Actualizar imports en todas las pantallas
 ```
 V1 (Archivado): Stripe PaymentIntents → Pago por cita individual
 V2 (Actual):    Stripe Subscriptions → Pago mensual recurrente
+```
+
+## 📊 Sistema de Tracking de Progreso
+
+### Archivo PROGRESS.md
+
+**Ubicación:** `PROGRESS.md` (raíz del proyecto)
+
+Este archivo contiene el registro completo del progreso del proyecto y DEBE actualizarse regularmente.
+
+**Cuándo actualizar PROGRESS.md:**
+
+1. ✅ **Al completar una fase completa** (ej: FASE 1, FASE 2)
+   - Marcar fase como completada
+   - Actualizar % de progreso general
+   - Agregar fecha y resumen
+
+2. ✅ **Al tomar decisiones técnicas importantes**
+   - Agregar a sección "Decisiones Técnicas Clave"
+   - Documentar razón y fecha
+
+3. ✅ **Al completar tareas significativas**
+   - Marcar checkbox correspondiente
+   - Actualizar métricas de progreso
+
+4. ✅ **Al hacer commits importantes**
+   - Agregar entrada en CHANGELOG
+   - Listar archivos modificados
+
+5. ✅ **Al final de cada sesión de trabajo**
+   - Actualizar "Última actualización"
+   - Agregar entrada en "Historial de Sesiones"
+   - Actualizar "Próximas Acciones Inmediatas"
+
+**Estructura del archivo:**
+- 🎯 Objetivo del proyecto
+- 📅 Historial de sesiones
+- 🏗️ Estado actual de la arquitectura
+- 📋 Plan maestro (fases pendientes)
+- 📊 Métricas de progreso
+- 🗂️ Archivos importantes
+- 🎯 Próximas acciones
+- 💡 Decisiones técnicas
+- 🐛 Deuda técnica
+- 🔄 Changelog
+
+**Ejemplo de actualización:**
+```markdown
+### Sesión X - [Fecha]
+**Trabajo realizado:**
+- [x] Tarea completada
+- [x] Otra tarea
+
+**Commits:**
+- `abc1234` - Descripción del commit
+
+**Decisiones:**
+- Usar librería X porque Y
 ```
