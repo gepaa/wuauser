@@ -4,3 +4,4 @@ export { veterinarianService } from './veterinarianService';
 export { mascotaService } from './mascotaService';
 export { citaService } from './citaService';
 export { mapService } from './mapService';
+export { subscriptionService } from './subscriptionService';

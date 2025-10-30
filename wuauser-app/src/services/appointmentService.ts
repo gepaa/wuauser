@@ -1,6 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { supabase } from './supabase';
 import notificationService from './notificationService';
+import { subscriptionService } from './subscriptionService';
 
 export interface Pet {
   id: string;
@@ -323,6 +324,24 @@ export const appointmentService = {
   // Appointment CRUD Operations
   async createAppointment(appointmentData: Omit<Appointment, 'id' | 'createdAt' | 'updatedAt'>): Promise<{ data?: Appointment; error?: string }> {
     try {
+      // ============================================================================
+      // VALIDACIÓN DE LÍMITE DE CITAS (Sistema de Suscripciones)
+      // ============================================================================
+      // Verificar si el veterinario puede recibir más citas este mes según su plan
+      const { canReceive, currentCount, limit } = await subscriptionService.checkAppointmentLimit(appointmentData.vetId);
+
+      if (!canReceive) {
+        const limitMessage = limit
+          ? `El veterinario ha alcanzado su límite de ${limit} citas este mes (${currentCount}/${limit}). Por favor elige otro veterinario o intenta más tarde.`
+          : 'El veterinario no puede recibir más citas en este momento. Por favor elige otro veterinario.';
+
+        console.warn(`⚠️ Límite de citas alcanzado para vet ${appointmentData.vetId}:`, { currentCount, limit });
+        return { error: limitMessage };
+      }
+
+      console.log(`✅ Vet ${appointmentData.vetId} puede recibir cita: ${currentCount + 1}/${limit || '∞'}`);
+      // ============================================================================
+
       const newAppointment: Appointment = {
         ...appointmentData,
         id: `apt_${Date.now()}`,
@@ -336,7 +355,10 @@ export const appointmentService = {
         const appointments = savedAppointments ? JSON.parse(savedAppointments) : [];
         appointments.push(newAppointment);
         await AsyncStorage.setItem(STORAGE_KEYS.APPOINTMENTS, JSON.stringify(appointments));
-        
+
+        // Incrementar contador de citas mensuales
+        await subscriptionService.incrementMonthlyAppointments(appointmentData.vetId);
+
         // Schedule notification reminders
         try {
           const notificationIds = await notificationService.scheduleAppointmentReminders(newAppointment);
@@ -345,7 +367,7 @@ export const appointmentService = {
           console.warn('Failed to schedule notifications:', notificationError);
           // Don't fail the appointment creation if notifications fail
         }
-        
+
         console.log('📅 Mock createAppointment:', newAppointment);
         return { data: newAppointment };
       }
@@ -359,6 +381,15 @@ export const appointmentService = {
       if (error) {
         return { error: error.message };
       }
+
+      // ============================================================================
+      // INCREMENTAR CONTADOR DE CITAS MENSUALES
+      // ============================================================================
+      if (data) {
+        await subscriptionService.incrementMonthlyAppointments(appointmentData.vetId);
+        console.log(`📊 Contador de citas incrementado para vet ${appointmentData.vetId}`);
+      }
+      // ============================================================================
 
       // Schedule notification reminders for production too
       if (data) {
