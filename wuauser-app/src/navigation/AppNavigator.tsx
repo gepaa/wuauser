@@ -14,6 +14,7 @@ import { VetClinicSetupScreen } from '../screens/VetClinicSetupScreen';
 import { VetPublicProfileScreen } from '../screens/VetPublicProfileScreen';
 import { BookAppointmentScreen } from '../screens/BookAppointmentScreen';
 import { VetAppointmentsScreen } from '../screens/VetAppointmentsScreen';
+import { MyAppointmentsScreen } from '../screens/MyAppointmentsScreen';
 import { AddPetScreen } from '../screens/AddPetScreen';
 import { PetDetailScreen } from '../screens/PetDetailScreen';
 import { VetDetailScreen } from '../screens/VetDetailScreen';
@@ -82,6 +83,7 @@ const AppContent: React.FC = () => {
       <Stack.Screen name="VetPublicProfile" component={VetPublicProfileScreen} />
       <Stack.Screen name="BookAppointment" component={BookAppointmentScreen} />
       <Stack.Screen name="VetAppointments" component={VetAppointmentsScreen} />
+      <Stack.Screen name="MyAppointments" component={MyAppointmentsScreen} />
       <Stack.Screen name="QRScanner" component={QRScannerScreen} />
       <Stack.Screen name="AddPet" component={AddPetScreen} />
       <Stack.Screen name="PetDetail" component={PetDetailScreen} />

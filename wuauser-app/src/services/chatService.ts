@@ -372,38 +372,104 @@ class ChatService {
     this.realtimeSubscriptions.clear();
   }
 
-  async createOrGetChat(ownerId: string, vetId: string, appointmentId?: string): Promise<Chat | null> {
+  async createOrGetChat(
+    userId1: string,
+    userId2: string,
+    metadata?: {
+      ownerName: string;
+      vetName: string;
+      vetClinic?: string;
+      context?: string;
+    }
+  ): Promise<Chat> {
     try {
       // Try Supabase first if available
       if (supabase) {
         console.log('🔄 Creating/getting chat from Supabase...');
-        const chat = await chatRealtimeService.createOrGetChat(ownerId, vetId, appointmentId);
-        
-        if (chat) {
-          // Cache locally
-          const chatsOwner = await this.getChats(ownerId);
-          const chatsVet = await this.getChats(vetId);
-          
-          if (!chatsOwner.find(c => c.id === chat.id)) {
-            chatsOwner.push(chat);
-            await AsyncStorage.setItem(`chats_${ownerId}`, JSON.stringify(chatsOwner));
-          }
-          
-          if (!chatsVet.find(c => c.id === chat.id)) {
-            chatsVet.push(chat);
-            await AsyncStorage.setItem(`chats_${vetId}`, JSON.stringify(chatsVet));
-          }
-          
-          return chat;
+
+        // Buscar chat existente entre estos dos usuarios
+        const { data: existingChats, error: searchError } = await supabase
+          .from('chats')
+          .select('*')
+          .contains('participant_ids', [userId1, userId2]);
+
+        if (searchError) {
+          console.error('Error searching chats:', searchError);
+        } else if (existingChats && existingChats.length > 0) {
+          // Si existe, retornarlo
+          console.log('✅ Found existing chat');
+          const existingChat = existingChats[0];
+          return {
+            id: existingChat.id,
+            participantIds: existingChat.participant_ids,
+            participants: {
+              owner: { id: userId1, name: metadata?.ownerName || 'Usuario' },
+              vet: { id: userId2, name: metadata?.vetName || 'Veterinario', clinic: metadata?.vetClinic }
+            },
+            createdAt: existingChat.created_at,
+            unreadCount: 0,
+            lastMessage: existingChat.last_message ? {
+              text: existingChat.last_message,
+              timestamp: existingChat.last_message_at || existingChat.created_at,
+              senderId: userId1
+            } : undefined
+          };
         }
+
+        // Si no existe, crear uno nuevo
+        console.log('📝 Creating new chat in Supabase...');
+        const { data: newChat, error: createError } = await supabase
+          .from('chats')
+          .insert({
+            participant_ids: [userId1, userId2],
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
+          })
+          .select()
+          .single();
+
+        if (createError) {
+          console.error('Error creating chat:', createError);
+          throw createError;
+        }
+
+        // Si hay metadata de contexto, enviar mensaje automático del sistema
+        if (metadata?.context && newChat) {
+          await this.sendMessage(newChat.id, 'system', `Chat iniciado sobre: ${metadata.context}`);
+        }
+
+        // Cachear localmente
+        const chat: Chat = {
+          id: newChat.id,
+          participantIds: newChat.participant_ids,
+          participants: {
+            owner: { id: userId1, name: metadata?.ownerName || 'Usuario' },
+            vet: { id: userId2, name: metadata?.vetName || 'Veterinario', clinic: metadata?.vetClinic }
+          },
+          createdAt: newChat.created_at,
+          unreadCount: 0,
+          lastMessage: undefined
+        };
+
+        const chatsUser1 = await this.getChats(userId1);
+        const chatsUser2 = await this.getChats(userId2);
+
+        chatsUser1.push(chat);
+        chatsUser2.push(chat);
+
+        await AsyncStorage.setItem(`chats_${userId1}`, JSON.stringify(chatsUser1));
+        await AsyncStorage.setItem(`chats_${userId2}`, JSON.stringify(chatsUser2));
+
+        return chat;
       }
 
       // Fallback to local implementation
-      return await this.createChat(ownerId, vetId);
+      console.log('📱 Creating chat locally...');
+      return await this.createChat(userId1, userId2);
     } catch (error) {
       console.error('Error creating/getting chat:', error);
       // Fallback to local implementation
-      return await this.createChat(ownerId, vetId);
+      return await this.createChat(userId1, userId2);
     }
   }
 

@@ -11,7 +11,8 @@
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage",
     "test:ci": "jest --ci --coverage --watchAll=false",
-    "postinstall": "node patches/react-navigation-fix.js && node scripts/fix-native-base.js"
+    "postinstall": "node patches/react-navigation-fix.js && node scripts/fix-native-base.js",
+    "verify-supabase": "node scripts/verify-supabase.js"
   },
   "dependencies": {
     "@expo/metro-runtime": "~5.0.4",

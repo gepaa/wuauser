@@ -12,6 +12,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import appointmentService, { Appointment } from '../services/appointmentService';
+import { chatService } from '../services/chatService';
+import { supabase } from '../services/supabase';
 import { Colors } from '../constants/colors';
 
 interface MyAppointmentsProps {
@@ -112,22 +114,44 @@ export const MyAppointmentsScreen: React.FC<MyAppointmentsProps> = ({ navigation
     );
   };
 
-  const handleContactVet = (appointment: Appointment) => {
-    Alert.alert(
-      'Contactar Veterinario',
-      `¿Quieres enviar un mensaje a ${appointment.vetName}?`,
-      [
-        { text: 'Cancelar', style: 'cancel' },
+  const handleContactVet = async (appointment: Appointment) => {
+    try {
+      // Obtener ID del usuario actual
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        Alert.alert('Error', 'No se pudo obtener tu información');
+        return;
+      }
+
+      // Crear o obtener chat existente
+      const chat = await chatService.createOrGetChat(
+        user.id,
+        appointment.vetId,
         {
-          text: 'Enviar mensaje',
-          onPress: () => {
-            // TODO: Navigate to chat screen
-            console.log('Contact vet:', appointment.vetId);
-            Alert.alert('Función en desarrollo', 'La función de mensajería estará disponible pronto');
-          }
+          ownerName: user.user_metadata?.nombre_completo || 'Dueño',
+          vetName: appointment.vetName || 'Veterinario',
+          vetClinic: appointment.clinicName || 'Clínica',
+          context: `Cita del ${new Date(appointment.date).toLocaleDateString()} a las ${appointment.time}`
         }
-      ]
-    );
+      );
+
+      // Navegar a chat
+      navigation.navigate('Chat', {
+        chatId: chat.id,
+        otherUser: {
+          id: appointment.vetId,
+          name: appointment.vetName,
+          type: 'veterinario'
+        }
+      });
+
+    } catch (error) {
+      console.error('Error al abrir chat:', error);
+      Alert.alert(
+        'Error',
+        'No se pudo abrir el chat. Por favor intenta de nuevo.'
+      );
+    }
   };
 
   const handleViewVetProfile = (appointment: Appointment) => {

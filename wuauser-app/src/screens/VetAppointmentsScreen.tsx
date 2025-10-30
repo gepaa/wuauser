@@ -12,6 +12,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import appointmentService, { Appointment } from '../services/appointmentService';
+import { chatService } from '../services/chatService';
+import { supabase } from '../services/supabase';
 import { Colors } from '../constants/colors';
 
 interface VetAppointmentsProps {
@@ -113,22 +115,51 @@ export const VetAppointmentsScreen: React.FC<VetAppointmentsProps> = ({ navigati
     );
   };
 
-  const handleSendMessage = (appointment: Appointment) => {
-    Alert.alert(
-      'Enviar Mensaje',
-      `¿Quieres enviar un mensaje a ${appointment.ownerName}?`,
-      [
-        { text: 'Cancelar', style: 'cancel' },
+  const handleSendMessage = async (appointment: Appointment) => {
+    try {
+      // Obtener ID del veterinario actual
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        Alert.alert('Error', 'No se pudo obtener tu información');
+        return;
+      }
+
+      // Obtener datos del perfil del veterinario
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('nombre_completo')
+        .eq('id', user.id)
+        .single();
+
+      // Crear o obtener chat existente
+      const chat = await chatService.createOrGetChat(
+        appointment.ownerId || appointment.ownerEmail,
+        user.id,
         {
-          text: 'Enviar',
-          onPress: () => {
-            // TODO: Navigate to chat screen
-            console.log('Send message to:', appointment.ownerEmail);
-            Alert.alert('Función en desarrollo', 'La función de mensajería estará disponible pronto');
-          }
+          ownerName: appointment.ownerName || 'Dueño',
+          vetName: profile?.nombre_completo || 'Veterinario',
+          vetClinic: 'Mi Clínica',
+          context: `Cita de ${appointment.petName} - ${new Date(appointment.date).toLocaleDateString()} a las ${appointment.time}`
         }
-      ]
-    );
+      );
+
+      // Navegar a chat
+      navigation.navigate('Chat', {
+        chatId: chat.id,
+        otherUser: {
+          id: appointment.ownerId || appointment.ownerEmail,
+          name: appointment.ownerName,
+          type: 'dueno'
+        }
+      });
+
+    } catch (error) {
+      console.error('Error al abrir chat:', error);
+      Alert.alert(
+        'Error',
+        'No se pudo abrir el chat. Por favor intenta de nuevo.'
+      );
+    }
   };
 
   const handleCompleteAppointment = async (appointmentId: string) => {

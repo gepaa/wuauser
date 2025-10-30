@@ -116,8 +116,8 @@ export const ChatScreen: React.FC = () => {
   const navigation = useNavigation<ChatScreenNavigationProp>();
   const toast = useToast();
   const flatListRef = useRef<any>(null);
-  
-  const { conversacionId, duenoNombre, mascotaNombre, duenoId, mascotaId } = route.params;
+
+  const { conversacionId, duenoNombre, mascotaNombre, duenoId, mascotaId, chatId, otherUser } = route.params as any;
   
   const [mensajes, setMensajes] = useState<Mensaje[]>(MOCK_MENSAJES);
   const [nuevoMensaje, setNuevoMensaje] = useState('');
@@ -281,16 +281,17 @@ export const ChatScreen: React.FC = () => {
             mr={3}
           >
             <Text color="white" fontSize="xs" fontWeight="bold">
-              {duenoNombre.charAt(0).toUpperCase()}{mascotaNombre.charAt(0).toUpperCase()}
+              {(otherUser?.name || duenoNombre || 'U').charAt(0).toUpperCase()}
+              {(mascotaNombre || '').charAt(0)?.toUpperCase() || ''}
             </Text>
           </Avatar>
-          
+
           <VStack flex={1}>
             <Text fontSize="md" fontWeight="semibold" color={vetTheme.colors.text.primary}>
-              {duenoNombre}
+              {otherUser?.name || duenoNombre || 'Usuario'}
             </Text>
             <Text fontSize="sm" color={vetTheme.colors.text.secondary}>
-              {mascotaNombre}
+              {mascotaNombre || (otherUser?.type === 'veterinario' ? 'Veterinario' : 'Chat')}
             </Text>
           </VStack>
 
