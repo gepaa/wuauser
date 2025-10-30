@@ -2,9 +2,27 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## ⚠️ CRITICAL: Working with the Developer
+
+**Developer Profile (Guido):**
+- ❌ **NO tiene experiencia en código para apps móviles**
+- ✅ **Proporciona:** Ideas de negocio, contexto, información, herramientas
+- ⚠️ **Claude tiene autonomía técnica completa** para todas las decisiones de implementación
+- 💬 **IMPORTANTE:** Guido prefiere que se hagan MIL PREGUNTAS para obtener el mejor resultado, en lugar de no preguntar nada y tener que repetir el trabajo mil veces
+
+**Protocolo de Trabajo:**
+1. SIEMPRE preguntar cuando haya ambigüedad en requisitos de negocio
+2. NUNCA asumir decisiones de producto sin confirmar
+3. Tomar decisiones técnicas de forma autónoma (librerías, arquitectura, patrones)
+4. Explicar decisiones técnicas en español simple y claro
+5. Alertar sobre trade-offs importantes antes de implementar
+
 ## Project Overview
 
-WUAUSER is a React Native + Expo mobile app that connects veterinarians with pet owners in Mexico. The app uses Supabase for backend services and follows Mexican Spanish UX patterns.
+WUAUSER es una app móvil React Native + Expo que conecta veterinarios con dueños de mascotas en México. Usa Supabase para backend y sigue patrones UX en español mexicano.
+
+**Versión Actual:** V2 (Post-refactoring a modelo de suscripciones)
+**Última Versión Estable:** V1 (commit: c275d03) - Modelo pay-per-appointment archivado
 
 ## Tech Stack
 
@@ -92,14 +110,79 @@ export const serviceName = async (): Promise<ReturnType> => {
 - **Files**: PascalCase for components, camelCase for utilities
 - **Max limits**: 50 lines per function, 200 lines per file
 
+## 💰 Modelo de Negocio Actual (V2)
+
+**Arquitectura:** B2B2C (Vendes a veterinarios, veterinarios sirven a dueños)
+
+### Monetización
+- ✅ **Veterinarios pagan suscripción mensual** (Stripe Subscriptions)
+- ❌ **NO hay comisiones por cita** (se eliminó el modelo pay-per-appointment)
+- ✅ **Dueños de mascotas usan la app 100% gratis**
+
+### Planes de Suscripción
+
+#### Plan Gratuito (Free)
+- **Precio:** $0/mes permanente
+- **Límite:** 5 citas por mes
+- **Funciones:**
+  - Perfil público visible (aparece en búsquedas)
+  - Chat básico con clientes
+  - Dashboard básico
+  - Sin estadísticas avanzadas
+
+#### Plan Profesional (Pro)
+- **Precio:** $600 MXN/mes
+- **Límite:** Citas ilimitadas
+- **Funciones:**
+  - Todo lo de Free +
+  - Perfil destacado (aparece primero en búsquedas)
+  - Chat ilimitado
+  - Dashboard completo con estadísticas avanzadas
+  - Soporte prioritario
+
+### Onboarding de Veterinarios
+- Todos empiezan con Plan Free (sin trial temporal)
+- Pueden upgradear a Pro cuando quieran
+- Plan Free es permanente (no se desactiva)
+
+### Razón del Cambio (V1 → V2)
+**V1:** Pay-per-appointment (dueño paga por cita, vet recibe 85%)
+- **Problema:** Difícil hacer que clientes paguen por adelantado vs. ir presencialmente
+- **Solución:** Cambio completo a modelo de suscripciones
+
+**V2:** Subscription-based (vet paga mensual)
+- Más predecible para monetización
+- Menos fricción para dueños de mascotas
+- Modelo probado (Doctoralia, Zocdoc)
+
 ## Current Implementation Status
 
-The app has basic scaffolding with:
-- Authentication service setup (Supabase)
-- Navigation structure (Auth + App navigators)
-- Basic screens (Splash, Onboarding, Login, Register)
-- Type definitions for User, Pet, Vet, Appointment entities
-- Color system and configuration constants
+### ✅ Completado (V1)
+- Authentication service (Supabase Auth)
+- Navigation structure (Stack + Bottom Tabs)
+- Chat en tiempo real
+- Sistema de citas
+- Perfiles de mascotas y veterinarios
+- Búsqueda de veterinarios
+- Dashboard básico
+
+### 🚧 En Progreso (V2 - Refactoring)
+- Sistema de suscripciones con Stripe
+- Planes Free y Pro
+- Validación de límites de citas
+- UI de selección y gestión de planes
+- Webhooks de Stripe
+
+### ❌ Desactivado Temporalmente (MVP)
+- GPS tracking en tiempo real
+- Mapas interactivos (react-native-maps)
+  - *Razón:* No crítico para MVP, se reactivará en versión futura
+  - *Ubicación en código:* Comentado en AppNavigator.tsx
+
+### 📦 Archivado (No se usa pero se conserva)
+- PaymentScreen.tsx → `/src/screens/_archived/`
+- Código de pay-per-appointment en paymentService.ts (comentado)
+  - *Razón:* Código de Stripe bien hecho, puede servir como referencia
 
 ## Key Requirements
 
@@ -116,11 +199,51 @@ Requires `.env` file in wuauser-app/ with:
 - `EXPO_PUBLIC_SUPABASE_URL`
 - `EXPO_PUBLIC_SUPABASE_ANON_KEY`
 
+## 🎯 Objetivos de Calidad del Código
+
+Este proyecto busca ser **limpio, ordenado y mantenible** como Doctoralia:
+- ✅ **Sin bugs ni errores** - Testing completo antes de lanzar features
+- ✅ **Código simple y claro** - Fácil de leer y mantener
+- ✅ **Sin código duplicado** - Un solo archivo por propósito
+- ✅ **Documentación clara** - Comentarios donde sea necesario
+- ⚠️ **Features avanzadas después** - Primero la base sólida, luego innovación
+
+### Deuda Técnica Conocida (A Resolver)
+- 🔴 **Servicios duplicados de veterinarios**
+  - Existen: `veterinarioService.ts`, `veterinarianService.ts`, `veterinariaService.ts`
+  - **Acción:** Consolidar en uno solo (`veterinarianService.ts`)
+- 🔴 **Migraciones SQL no ejecutadas en producción**
+  - Archivos creados pero NO corriendo en Supabase
+  - **Acción:** Ejecutar en SQL Editor de Supabase
+- 🟡 **Pantallas huérfanas**
+  - Algunas pantallas existen pero no están en navegación
+  - **Acción:** Revisar y archivar/eliminar
+
 ## Development Notes
 
-- Color scheme needs updating to match design tokens in AI_GUIDELINES.md
-- No src/hooks or src/utils directories created yet
-- Main App.tsx still shows default Expo template
-- Navigation setup exists but not connected to main App component
+**IMPORTANTE:** Si necesitas algún paquete npm/expo, inclúyelo SIEMPRE al inicio de tu respuesta o instálalo tú mismo en la consola.
 
-"IMPORTANTE: Si necesitas algún paquete npm/expo, incluye SIEMPRE el comando de instalación al inicio de tu respuesta o ejecutalo tú mismo en la consola".
+### Base de Datos (Supabase)
+- **URL Proyecto:** https://supabase.com/dashboard/project/tmwtelgxnhkjzrdmlwph
+- **Estado:** Configurado en `.env` pero SQL pendiente de ejecutar
+- **Acción Crítica:** Ejecutar `complete_setup.sql` en SQL Editor antes de probar la app
+
+### Servicios a Consolidar
+```
+MANTENER: veterinarianService.ts (más completo, 31KB)
+ELIMINAR: veterinarioService.ts, veterinariaService.ts
+REFACTOR: Actualizar imports en todas las pantallas
+```
+
+### Features Desactivadas Temporalmente
+```typescript
+// En AppNavigator.tsx - GPS/Mapas comentados para MVP
+// <Tab.Screen name="Map" component={MapScreen} />
+// <Stack.Screen name="ChipTracking" component={ChipTrackingScreen} />
+```
+
+### Arquitectura de Pagos
+```
+V1 (Archivado): Stripe PaymentIntents → Pago por cita individual
+V2 (Actual):    Stripe Subscriptions → Pago mensual recurrente
+```
